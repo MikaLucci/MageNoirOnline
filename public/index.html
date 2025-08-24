@@ -135,37 +135,47 @@
     .share{display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:12px; color:#9fb5ff;}
     .share code{background:#0f1426;border:1px solid #2e3656;color:#dfe6ff;border-radius:8px;padding:4px 6px;}
 
-    /* Modal Deckbuilder */
-    .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:120; }
-    .modal-inner{
-      width:min(1100px, 96vw); max-height:92vh; overflow:hidden;
-      display:flex; flex-direction:column; gap:10px;
-      background:rgba(16,18,30,.98); border:1px solid #2b3350; border-radius:16px; padding:14px;
-      box-shadow:0 24px 80px rgba(0,0,0,.6);
-    }
-    .db-head{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    .db-body{display:grid; grid-template-columns: 1fr 320px; gap:12px; min-height:0; flex:1}
-    .db-gallery{border:1px dashed #2b3350; border-radius:12px; padding:10px; overflow:auto}
-    .db-grid{display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:10px}
-    .thumb{
-      position:relative; border:1px solid #2b3350; border-radius:12px; overflow:hidden; background:#0b0f1a; padding-bottom:36px;
-      display:flex; align-items:center; justify-content:center; height:220px;
-    }
-    .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
-    .thumb .overlay{
-      position:absolute; left:0; right:0; bottom:0; height:36px;
-      background:linear-gradient(0deg, rgba(0,0,0,.85), rgba(0,0,0,0));
-      display:flex; align-items:center; gap:6px; padding:6px 8px;
-    }
-    .qty{display:flex; align-items:center; gap:4px}
-    .qty button{width:24px; height:24px; border-radius:6px; border:1px solid #33405f; background:#12162a; cursor:pointer}
-    .add-btn{margin-left:auto}
-    .cardname{position:absolute; left:6px; top:6px; background:rgba(0,0,0,.6); border:1px solid #33405f; border-radius:8px; padding:2px 6px; font-size:11px}
-    .db-side{border:1px dashed #2b3350; border-radius:12px; padding:10px; display:flex; flex-direction:column; min-height:0}
-    .deck-list{flex:1; overflow:auto; display:flex; flex-direction:column; gap:6px}
-    .deck-row{display:flex; align-items:center; gap:8px; background:#0b0f1a; border:1px solid #2b3350; border-radius:10px; padding:6px}
-    .deck-row .name{flex:1}
-    .pill{font-size:11px; padding:2px 6px; border-radius:999px; border:1px solid #2b3350; background:#12162a}
+/* Modal Deckbuilder */
+.modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:120; }
+.modal-inner{
+  width:min(1200px, 96vw); max-height:92vh; overflow:hidden;
+  display:flex; flex-direction:column; gap:10px;
+  background:rgba(16,18,30,.98); border:1px solid #2b3350; border-radius:16px; padding:14px;
+  box-shadow:0 24px 80px rgba(0,0,0,.6);
+}
+.db-head{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.db-body{display:grid; grid-template-columns: 1fr 320px; gap:12px; min-height:0; flex:1}
+.db-gallery{border:1px dashed #2b3350; border-radius:12px; padding:10px; overflow:auto}
+.db-grid{display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:12px}
+.thumb{
+  position:relative; border:1px solid #2b3350; border-radius:12px; background:#0b0f1a;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-start; 
+  height:260px; overflow:hidden;
+}
+.thumb img{ width:100%; height:200px; object-fit:contain; display:block; background:#000; }
+.thumb .cardname{
+  position:absolute; top:6px; left:6px; right:6px;
+  background:rgba(0,0,0,.55); border:1px solid #33405f; border-radius:8px;
+  padding:2px 6px; font-size:11px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.thumb .overlay{
+  margin-top:auto; width:100%; padding:6px;
+  display:flex; align-items:center; gap:6px; justify-content:space-between;
+}
+.qty{display:flex; align-items:center; gap:4px}
+.qty button{width:22px; height:22px; border-radius:6px; border:1px solid #33405f; background:#12162a; cursor:pointer}
+.qty input{width:36px; text-align:center; border:1px solid #2e3656; background:#0f1426; color:#dfe6ff; border-radius:6px; padding:2px}
+.add-btn{flex:1}
+.db-side{border:1px dashed #2b3350; border-radius:12px; padding:10px; display:flex; flex-direction:column; min-height:0}
+.deck-list{flex:1; overflow:auto; display:flex; flex-direction:column; gap:6px}
+.deck-row{display:flex; align-items:center; gap:8px; background:#0b0f1a; border:1px solid #2b3350; border-radius:10px; padding:6px}
+.deck-row .name{flex:1}
+.pill{font-size:11px; padding:2px 6px; border-radius:999px; border:1px solid #2b3350; background:#12162a}
+
+/* Chips (filtres) avec icône */
+.chip{display:flex; align-items:center; gap:6px; background:var(--chip); border:1px solid #2b3350; color:#dfe6ff; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer}
+.chip img{width:18px;height:18px;object-fit:contain}
+.chip.active{outline:2px solid #7aa2ff}
   </style>
 </head>
 <body>
@@ -914,11 +924,24 @@ document.getElementById('dbImportFile').addEventListener('change', async (ev)=>{
 function buildElementChips(){
   eltChips.innerHTML="";
   const els = Array.from(LOCAL_CARDS.byElem.keys()).filter(x=>x!=="Inconnu");
-  const order = ELEMENTS.filter(e=>els.includes(e)); // garde ordre officiel
+  const order = ELEMENTS.filter(e=>els.includes(e));
   const chips = ["Tous", ...order, ...els.filter(e=>!order.includes(e))];
+
   for(const e of chips){
-    const b=document.createElement('button'); b.className='chip'+(DB.filter===e?' active':''); b.textContent=e;
-    b.onclick=()=>{ DB.filter=e; [...eltChips.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderDbGrid(); };
+    const b=document.createElement('button');
+    b.className='chip'+(DB.filter===e?' active':'');
+    if(e!=="Tous"){
+      const img=document.createElement('img');
+      img.src=iconUrl[e]; img.alt=e;
+      b.appendChild(img);
+    }
+    b.appendChild(document.createTextNode(e));
+    b.onclick=()=>{ 
+      DB.filter=e; 
+      [...eltChips.children].forEach(x=>x.classList.remove('active')); 
+      b.classList.add('active'); 
+      renderDbGrid(); 
+    };
     eltChips.appendChild(b);
   }
 }
