@@ -19,8 +19,7 @@
       --cardW:160px; --cardH:218px;
       --gutter:10px;
       --chip:#1a2036;
-      --danger:#b91c1c;
-      --danger-grad: linear-gradient(180deg,#7f1d1d,#4c1212);
+      --danger1:#b91c1c; --danger2:#7f1d1d;
     }
     *{box-sizing:border-box}
     body{
@@ -31,23 +30,23 @@
       height:100vh; overflow:visible;
     }
 
-    /* ===== Header (1 ligne, 2 groupes) ===== */
+    /* ---------- Header (tout sur une ligne) ---------- */
     header{
-      display:flex; align-items:center; gap:14px;
-      padding:8px 16px; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
-      border-bottom:1px solid var(--border); position:sticky; top:0; z-index:40; backdrop-filter:blur(8px);
-      flex-wrap:wrap;
+      padding:8px 16px;
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
+      border-bottom:1px solid var(--border);
+      position:sticky; top:0; z-index:40; backdrop-filter:blur(8px);
     }
+    .topbar{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
     header h1{font-family:'Unica One'; font-size:20px; margin:0 8px 0 0; letter-spacing:.5px}
-    .group{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+    .group{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px dashed #2b3350; border-radius:12px; background:rgba(18,20,34,.35)}
     .divider{width:1px; height:28px; background:#2b3350; margin:0 6px}
     .spacer{flex:1}
-
     .btn{background:linear-gradient(180deg,#2c3150,#24293e); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; box-shadow:0 8px 22px rgba(0,0,0,.35)}
     .btn.alt{background:linear-gradient(180deg,#263046,#1e2538)}
     .btn.ghost{background:transparent; border:1px solid #33405f}
     .btn.small{padding:6px 10px; font-size:13px; border-radius:9px}
-    .btn.danger{background:var(--danger-grad); border-color:#5f1414}
+    .btn.danger{background:linear-gradient(180deg, var(--danger1), var(--danger2)); border-color:#5b1212}
     .input{background:#0f1426;border:1px solid #2e3656;color:#dfe6ff;border-radius:10px;padding:7px 10px;min-width:150px}
     .chip{background:var(--chip); border:1px solid #2b3350; color:#dfe6ff; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer}
     .chip.active{outline:2px solid #7aa2ff}
@@ -74,20 +73,21 @@
     .card{width:var(--cardW); height:var(--cardH); border-radius:14px; border:1px solid #2a2f52; padding:0; position:relative; overflow:hidden; display:flex; align-items:stretch; justify-content:center}
     .card-img{width:100%; height:100%; object-fit:cover; display:block; pointer-events:none;}
 
-    .reserve-wrap{display:flex; align-items:center; gap:8px}
     .reserve-bar{display:flex; gap:8px; justify-content:center; align-items:center; padding:6px; background:rgba(12,14,26,.6); border:1px dashed #2a2d4a; border-radius:10px; flex-wrap:wrap}
     .res-item{display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid #394467; background:rgba(255,255,255,.04); font-size:12px}
     .res-item img{width:18px; height:18px; object-fit:contain; display:block}
 
-    /* Ligne PV + Fin du tour aligné droite */
-    .life-sep{position:sticky; top:8px; display:flex; align-items:center; justify-content:center; gap:18px; margin:8px 0 12px; padding:6px 10px; border:1px dashed var(--border); border-radius:12px; background:rgba(14,16,28,.55); backdrop-filter: blur(4px);}
-    .life-side{display:flex; align-items:center; gap:8px; font-weight:700; color:#cfd3ff}
+    /* Ligne PV + bouton Fin du tour à droite */
+    .life-sep{
+      position:sticky; top:8px; display:flex; align-items:center;
+      justify-content:space-between; gap:12px; margin:8px 0 12px; padding:6px 10px;
+      border:1px dashed var(--border); border-radius:12px; background:rgba(14,16,28,.55); backdrop-filter: blur(4px);
+    }
     .pv-wrap{display:flex; align-items:center; gap:6px}
     .pv-badge{font-size:14px; padding:4px 10px; border-radius:10px; background:linear-gradient(180deg,#1b1b2a,#141428); border:1px solid #2b2b45; font-weight:800}
-    .life-divider{opacity:.7; font-weight:800; letter-spacing:.5px}
+    .life-side{display:flex; align-items:center; gap:8px; font-weight:700; color:#cfd3ff}
     .pv-btn{width:26px;height:26px;border-radius:8px;border:1px solid #33405f;background:#12162a;cursor:pointer}
     .pv-btn:active{transform:scale(.96)}
-    .life-spacer{flex:1; min-width:20px}
 
     .ether--vertical{display:flex; flex-direction:column; gap:12px}
     .pile-card{border:1px solid var(--border); border-radius:14px; padding:10px; background:rgba(10,12,22,.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,.04)}
@@ -163,13 +163,19 @@
       height:260px; overflow:hidden;
     }
     .thumb img{ width:100%; height:200px; object-fit:contain; display:block; background:#000; }
-    .thumb .overlay{ margin-top:auto; width:100%; padding:6px;
-      display:flex; align-items:center; gap:6px; justify-content:space-between; }
+    .thumb .cardname{
+      position:absolute; top:6px; left:6px; right:6px;
+      background:rgba(0,0,0,.55); border:1px solid #33405f; border-radius:8px;
+      padding:2px 6px; font-size:11px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .thumb .overlay{
+      margin-top:auto; width:100%; padding:6px;
+      display:flex; align-items:center; gap:6px; justify-content:space-between;
+    }
     .qty{display:flex; align-items:center; gap:4px}
     .qty button{width:22px; height:22px; border-radius:6px; border:1px solid #33405f; background:#12162a; cursor:pointer}
     .qty input{width:36px; text-align:center; border:1px solid #2e3656; background:#0f1426; color:#dfe6ff; border-radius:6px; padding:2px}
     .add-btn{flex:1}
-    .cardname{position:absolute; top:6px; left:6px; right:6px; background:rgba(0,0,0,.55); border:1px solid #33405f; border-radius:8px; padding:2px 6px; font-size:11px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
     .db-side{border:1px dashed #2b3350; border-radius:12px; padding:10px; display:flex; flex-direction:column; min-height:0}
     .deck-list{flex:1; overflow:auto; display:flex; flex-direction:column; gap:6px}
     .deck-row{display:flex; align-items:center; gap:8px; background:#0b0f1a; border:1px solid #2b3350; border-radius:10px; padding:6px}
@@ -183,36 +189,37 @@
   </style>
 </head>
 <body>
-
 <header>
-  <h1>Mage Noir</h1>
+  <div class="topbar">
+    <h1>Mage Noir</h1>
 
-  <!-- Groupe PARTIE -->
-  <div class="group">
-    <button class="btn small alt" id="createBtn" type="button">Créer une partie</button>
-    <input id="roomId" class="input" placeholder="Code salle (ex: ABC123)" />
-    <button class="btn small alt" id="joinBtn" type="button">Rejoindre</button>
-    <button class="btn small ghost" id="restartBtn">Relancer la partie</button>
+    <!-- Groupe PARTIE -->
+    <div class="group" id="grpGame">
+      <button class="btn small alt" id="createBtn" type="button">Créer</button>
+      <input id="roomId" class="input" placeholder="Code salle (ex: ABC123)" />
+      <button class="btn small alt" id="joinBtn" type="button">Rejoindre</button>
+      <button class="btn small ghost" id="restartBtn">Relancer</button>
+    </div>
+
+    <span class="divider" aria-hidden="true"></span>
+
+    <!-- Groupe DECKBUILDING -->
+    <div class="group" id="grpDeck">
+      <button class="btn small" id="deckbuilderBtn" type="button">Deckbuilder</button>
+      <label class="btn small alt" style="cursor:pointer">
+        Importer Deck
+        <input id="deckFile" type="file" accept=".txt,.deck,.csv" style="display:none">
+      </label>
+    </div>
+
+    <span class="spacer"></span>
+
+    <span id="netStatus" style="font-size:12px;color:#9fb5ff"></span>
+    <span class="share" id="shareWrap" style="display:none">
+      • Lien : <code id="shareUrl"></code>
+      <button class="btn small ghost" id="copyLinkBtn" type="button">Copier</button>
+    </span>
   </div>
-
-  <div class="divider"></div>
-
-  <!-- Groupe DECKBUILDING -->
-  <div class="group">
-    <button class="btn small" id="deckbuilderBtn" type="button">Deckbuilder</button>
-    <label class="btn small alt" style="cursor:pointer">
-      Importer Deck
-      <input id="deckFile" type="file" accept=".txt,.deck,.csv" style="display:none">
-    </label>
-  </div>
-
-  <span class="spacer"></span>
-
-  <span id="netStatus" style="font-size:12px;color:#9fb5ff"></span>
-  <span class="share" id="shareWrap" style="display:none">
-    • Lien : <code id="shareUrl"></code>
-    <button class="btn small ghost" id="copyLinkBtn" type="button">Copier</button>
-  </span>
 </header>
 
 <main>
@@ -236,17 +243,20 @@
               <div id="oppChanneled" class="pile channeled-wrap"></div>
             </div>
           </div>
-          <div class="reserve-wrap">
-            <div id="oppReserve" class="reserve-bar" style="margin-bottom:6px"></div>
-            <button class="btn small alt" id="oppExchangeBtn" title="Échanger 2 mana de votre réserve contre 1 ajouté à l’Éther">Échanger Mana</button>
+
+          <!-- Réserve + Échanger mana (ENNEMI) -->
+          <div class="row" style="align-items:center; gap:8px; margin:0 0 6px 0">
+            <div id="oppReserve" class="reserve-bar" style="flex:1"></div>
+            <button class="btn small ghost" id="oppSwapBtn" title="Échanger 2 mana contre 1 de la pile la plus remplie">Échanger Mana</button>
           </div>
+
           <div id="oppBoard" class="pile"></div>
         </div>
       </div>
     </div>
 
     <!-- PV + Fin du tour (à droite) -->
-    <div class="life-sep" style="display:flex; align-items:center">
+    <div class="life-sep">
       <div class="life-side">
         <span>Ennemi</span>
         <div class="pv-wrap">
@@ -256,9 +266,15 @@
         </div>
       </div>
 
-      <span class="life-spacer"></span>
-
-      <button class="btn small danger" id="endBtn" title="Finir votre tour">Fin du tour</button>
+      <div class="life-side" style="margin-left:auto; gap:12px">
+        <div class="pv-wrap">
+          <button class="pv-btn" id="meLifeMinus">–</button>
+          <span id="meLife" class="pv-badge">20</span>
+          <button class="pv-btn" id="meLifePlus">+</button>
+        </div>
+        <span>Moi</span>
+        <button class="btn small danger" id="endBtn" title="Terminer votre tour">Fin du tour</button>
+      </div>
     </div>
 
     <!-- JOUEUR -->
@@ -269,10 +285,13 @@
           <div class="slot" id="meDiscardSlot"><span class="label">Défausse</span></div>
         </div>
         <div style="flex:1; display:flex; flex-direction:column; gap:10px">
-          <div class="reserve-wrap">
-            <div id="meReserve" class="reserve-bar"></div>
-            <button class="btn small alt" id="meExchangeBtn" title="Échanger 2 mana de votre réserve contre 1 ajouté à l’Éther">Échanger Mana</button>
+
+          <!-- Réserve + Échanger mana (MOI) -->
+          <div class="row" style="align-items:center; gap:8px;">
+            <div id="meReserve" class="reserve-bar" style="flex:1"></div>
+            <button class="btn small" id="meSwapBtn" title="Échanger 2 mana contre 1 de la pile la plus remplie">Échanger Mana</button>
           </div>
+
           <div class="row" style="gap:10px">
             <div class="zone" style="flex:1">
               <h3>Sorts préparés / Permanents</h3>
@@ -365,7 +384,7 @@
 <div id="zoomPopup" aria-hidden="true"><img alt="aperçu carte"></div>
 
 <script>
-/* ====== Réseau (Socket.IO) ====== */
+/* =================== Réseau (Socket.IO) =================== */
 const net = {
   socket: null,
   room: null,
@@ -388,7 +407,10 @@ const net = {
         showShareLink(net.room);
       }
     });
-    s.on('state:remote', (payload)=>{ if(!payload || payload.room!==net.room) return; applyRemoteState(payload.state||{}); });
+    s.on('state:remote', (payload)=>{
+      if(!payload || payload.room!==net.room) return;
+      applyRemoteState(payload.state||{});
+    });
   },
   emit(type, data){
     if(!this.socket || !this.room || this.socket.disconnected) return;
@@ -412,7 +434,7 @@ document.getElementById('copyLinkBtn').addEventListener('click', async ()=>{
   catch{ setNetStatus('Impossible de copier le lien', '#fca5a5'); }
 });
 
-/* ===== Helpers ===== */
+/* =================== Helpers généraux =================== */
 const ELEMENTS = ["Air","Feu","Eau","Végétal","Minéral","Arcane"];
 function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 const EL_COL={Air:getCSS('--air'),Feu:getCSS('--feu'),Eau:getCSS('--eau'),"Végétal":getCSS('--vegetal'),"Minéral":getCSS('--mineral'),Arcane:getCSS('--arcane')};
@@ -421,7 +443,7 @@ function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Ma
 function emptyRes(){const r={}; for(const e of ELEMENTS) r[e]=0; return r; }
 function other(id){return id==="0"?"1":"0";}
 
-/* ===== Cartes – index local ===== */
+/* =================== Cartes – index local =================== */
 let CARD_INDEX={};
 let LOCAL_CARDS = { list:[], byPath:new Map(), byBase:new Map(), byElem:new Map(), loaded:false };
 
@@ -455,6 +477,7 @@ async function loadLocalCardsIndex(){
       LOCAL_CARDS.byBase.set(base, p);
       if(!LOCAL_CARDS.byElem.has(elem)) LOCAL_CARDS.byElem.set(elem, []);
       LOCAL_CARDS.byElem.get(elem).push(p);
+
       CARD_INDEX[p] = CARD_INDEX[p] || { id:p, name:prettyNameFromFilename(fileBase(p)), image:p, element:elem };
     }
     LOCAL_CARDS.loaded = true;
@@ -464,7 +487,7 @@ async function loadLocalCardsIndex(){
   return LOCAL_CARDS;
 }
 
-/* ===== État ===== */
+/* =================== État de partie =================== */
 function makePlayer(starter){
   const deck=shuffle(starter);
   return { life:20, reserve:emptyRes(), hand:[], deck, discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
@@ -481,7 +504,7 @@ const G={
   startChoice:{ active:false, pid:null, pileA:[], pileB:[] }
 };
 
-/* ===== Réseau – sync public ===== */
+/* =================== Réseau – sync public =================== */
 function buildPublicState(){
   const me = G.players["0"];
   return {
@@ -500,7 +523,8 @@ function buildPublicState(){
   };
 }
 function applyRemoteState(state){
-  const opp = G.players["1"]; if(!opp) return;
+  const opp = G.players["1"];
+  if(!opp) return;
   const src = state.me || {};
   opp.life = src.life ?? opp.life;
   opp.reserve = src.reserve || opp.reserve;
@@ -510,9 +534,11 @@ function applyRemoteState(state){
   opp.discard = src.discardTop ? [ { id: src.discardTop } ] : [];
   opp.deck = new Array(Number(src.deckCnt||0)).fill(null);
   opp.hand = new Array(Number(src.handCnt||0)).fill(null);
+
   if(Array.isArray(state.ether)) G.ether = state.ether;
   if(typeof state.turn==="number") G.turn = state.turn;
   if(state.current==="0" || state.current==="1") G.current = state.current;
+
   render();
 }
 let lastSync=0;
@@ -524,7 +550,7 @@ function netSync(){
   net.emit('state:update', { state: buildPublicState() });
 }
 
-/* ===== Éther & Sélecteur ===== */
+/* =================== Éther & Sélecteur =================== */
 const iconUrl = {
   "Air": "https://magenoir.com/img/mage-noir/pictograms/air_icon.png",
   "Feu": "https://magenoir.com/img/mage-noir/pictograms/fire_icon.png",
@@ -533,7 +559,6 @@ const iconUrl = {
   "Minéral": "https://magenoir.com/img/mage-noir/pictograms/mineral_icon.png",
   "Arcane": "https://magenoir.com/img/mage-noir/pictograms/arcane_icon.png"
 };
-function etherSmallest(){ return (G.ether[0].length<=G.ether[1].length)?0:1; }
 function orbsHTML(arr){
   return arr.map(e => `<img src="${iconUrl[e]}" alt="${e}" title="${e}" style="width:24px;height:24px;object-fit:contain;filter:drop-shadow(0 0 1px ${EL_COL[e]});">`).join("");
 }
@@ -601,7 +626,7 @@ function takePile(i){
   G.ether[i]=[]; G.step="main"; render(); netSync();
 }
 
-/* ===== PV ===== */
+/* =================== PV =================== */
 function changeLife(pid, delta){
   const p = G.players[pid];
   p.life = Math.max(0, (p.life||0) + delta);
@@ -612,7 +637,7 @@ document.getElementById('meLifePlus').onclick  = ()=> changeLife(G.current, +1);
 document.getElementById('oppLifeMinus').onclick = ()=> changeLife(other(G.current), -1);
 document.getElementById('oppLifePlus').onclick  = ()=> changeLife(other(G.current), +1);
 
-/* ===== Drag & Drop ===== */
+/* =================== Drag & Drop =================== */
 let dragCardId = null;
 function cardDragStart(ev, cid){
   dragCardId = cid; document.body.classList.add('dragging');
@@ -658,7 +683,7 @@ function onCardWrapper(cardEl, cid){
   cardEl.addEventListener("dragstart", (ev)=>cardDragStart(ev,cid));
 }
 
-/* ===== Rendu plateau ===== */
+/* =================== Rendu plateau =================== */
 function cardImagePath(def){
   if(isPathId(def.id)) return String(def.id).replace(/\\/g,'/');
   const img=def.image||`${def.id}.jpg`;
@@ -754,7 +779,7 @@ function render() {
   document.getElementById("meDeckSlot").onclick = () => { draw(G.current, 1) };
 }
 
-/* ===== Tour ===== */
+/* =================== Tour =================== */
 function startTurn(){
   const skip=(G.turn===1 && G.current==="0");
   if(!skip){ if(!draw(G.current,1)){ alert("Deck vide"); return; } }
@@ -772,7 +797,34 @@ document.getElementById("endBtn").onclick=()=>{
   startTurn(); render(); netSync();
 };
 
-/* ===== Import Deck (plateau) ===== */
+/* =================== Échanger Mana (2 -> 1 depuis la pile la plus remplie) =================== */
+function swapMana(pid){
+  const p = G.players[pid];
+  const total = Object.values(p.reserve).reduce((a,b)=>a+(b||0),0);
+  if(total < 2){ alert("Pas assez de mana en réserve (il en faut 2)."); return; }
+
+  // retirer 2 mana : on enlève en priorité là où il y en a le plus
+  for(let k=0;k<2;k++){
+    let bestEl=null, bestCnt=-1;
+    for(const e of ELEMENTS){ const c=p.reserve[e]||0; if(c>bestCnt){ bestCnt=c; bestEl=e; } }
+    if(!bestEl || p.reserve[bestEl]<=0){ alert("Réserve insuffisante."); return; }
+    p.reserve[bestEl]--;
+  }
+
+  // choisir la pile la plus remplie (si égalité -> pile 0)
+  const idx = (G.ether[0].length >= G.ether[1].length) ? 0 : 1;
+  if(G.ether[idx].length===0){ alert("Aucune mana dans l'Éther Disponible."); return; }
+
+  // prendre 1 mana (la dernière de la pile)
+  const gain = G.ether[idx].pop();
+  p.reserve[gain] = (p.reserve[gain]||0)+1;
+
+  render(); netSync();
+}
+document.getElementById('meSwapBtn').onclick = ()=> swapMana(G.current);
+document.getElementById('oppSwapBtn').onclick = ()=> swapMana(other(G.current));
+
+/* =================== Import Deck (plateau) =================== */
 document.getElementById('deckFile').addEventListener('change', async (ev)=>{
   const file = ev.target.files?.[0]; if(!file) return;
   try{
@@ -815,7 +867,7 @@ function importPlayerDeck(paths){
   startStartingHand("0");
 }
 
-/* ===== Choix main de départ simplifié ===== */
+/* =================== Choix main de départ 2x5 =================== */
 function startStartingHand(pid){
   const p = G.players[pid];
   if(!p || (p.hand && p.hand.length)) return;
@@ -823,12 +875,14 @@ function startStartingHand(pid){
   const drawn = p.deck.splice(0, 10);
   const pileA = drawn.slice(0,5);
   const pileB = drawn.slice(5,10);
+  G.startChoice = { active:true, pid, pileA, pileB };
   p.hand = pileA.slice();
   p.deck.push(...pileB); p.deck = shuffle(p.deck);
+  G.startChoice = { active:false, pid:null, pileA:[], pileB:[] };
   render(); netSync(); if(pid === G.current){ G.turn = 1; startTurn(); }
 }
 
-/* ===== Zoom popup ===== */
+/* =================== Zoom popup =================== */
 const zoomPopup = document.getElementById('zoomPopup');
 const zoomImg   = zoomPopup.querySelector('img');
 function positionZoom(e){
@@ -856,10 +910,10 @@ function onMoveCard(e){ positionZoom(e); }
 function onLeaveCard(){ zoomPopup.style.display = 'none'; zoomImg.src = ''; }
 attachHoverZoom();
 
-/* ===== UI Réseau : Créer/Rejoindre ===== */
+/* =================== UI Réseau : Créer/Rejoindre =================== */
 function randomCode(){
   const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out=''; for(let i=0;i<6;i++) out += alphabet[Math.floor(Math.random()*(alphabet.length))];
+  let out=''; for(let i=0;i<6;i++) out += alphabet[Math.floor(Math.random()*alphabet.length)];
   return out;
 }
 document.getElementById('createBtn').addEventListener('click', ()=>{
@@ -874,7 +928,9 @@ document.getElementById('joinBtn').addEventListener('click', ()=>{
   history.replaceState(null, '', '#'+id);
   net.connect(id); net.emit('room:join', {}); showShareLink(id);
 });
-document.getElementById('restartBtn').addEventListener('click', ()=>{ location.reload(); });
+document.getElementById('restartBtn').addEventListener('click', ()=>{
+  location.reload();
+});
 window.addEventListener('load', ()=>{
   const hash = (location.hash||'').replace('#','').trim();
   if(hash){
@@ -883,7 +939,7 @@ window.addEventListener('load', ()=>{
   }
 });
 
-/* ===== Deckbuilder ===== */
+/* =================== Deckbuilder =================== */
 const dbModal = document.getElementById('deckbuilderModal');
 const dbGrid = document.getElementById('dbGrid');
 const deckListEl = document.getElementById('deckList');
@@ -913,24 +969,38 @@ document.getElementById('dbImportFile').addEventListener('change', async (ev)=>{
     renderDeckList();
   }finally{ ev.target.value=""; }
 });
+
 function buildElementChips(){
   eltChips.innerHTML="";
   const els = Array.from(LOCAL_CARDS.byElem.keys()).filter(x=>x!=="Inconnu");
   const order = ELEMENTS.filter(e=>els.includes(e));
   const chips = ["Tous", ...order, ...els.filter(e=>!order.includes(e))];
+
   for(const e of chips){
     const b=document.createElement('button');
     b.className='chip'+(DB.filter===e?' active':'');
-    if(e!=="Tous"){ const img=document.createElement('img'); img.src=iconUrl[e]; img.alt=e; b.appendChild(img); }
+    if(e!=="Tous"){
+      const img=document.createElement('img'); img.src=iconUrl[e]; img.alt=e;
+      b.appendChild(img);
+    }
     b.appendChild(document.createTextNode(e));
-    b.onclick=()=>{ DB.filter=e; [...eltChips.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderDbGrid(); };
+    b.onclick=()=>{ 
+      DB.filter=e; 
+      [...eltChips.children].forEach(x=>x.classList.remove('active')); 
+      b.classList.add('active'); 
+      renderDbGrid(); 
+    };
     eltChips.appendChild(b);
   }
 }
+
 function renderDbGrid(){
   dbGrid.innerHTML="";
   let list = LOCAL_CARDS.list;
-  if(DB.filter && DB.filter!=="Tous"){ list = LOCAL_CARDS.byElem.get(DB.filter) || []; }
+  if(DB.filter && DB.filter!=="Tous"){
+    const arr = LOCAL_CARDS.byElem.get(DB.filter) || [];
+    list = arr;
+  }
   for(const p of list){
     const base = fileBase(p);
     const display = prettyNameFromFilename(base);
@@ -943,6 +1013,7 @@ function renderDbGrid(){
     const qtyWrap = document.createElement('div'); qtyWrap.className='qty';
     const minus = document.createElement('button'); minus.textContent='–';
     const input = document.createElement('input'); input.type='number'; input.min='1'; input.max='9'; input.value='1';
+    input.style.width='42px'; input.style.background='#0f1426'; input.style.border='1px solid #2e3656'; input.style.color='#dfe6ff'; input.style.borderRadius='8px'; input.style.padding='2px 6px';
     const plus = document.createElement('button'); plus.textContent='+';
     minus.onclick=()=>{ const v=Math.max(1, (parseInt(input.value)||1)-1); input.value=String(v); };
     plus.onclick=()=>{ const v=Math.min(9, (parseInt(input.value)||1)+1); input.value=String(v); };
@@ -957,6 +1028,7 @@ function renderDbGrid(){
   }
   attachHoverZoom(dbGrid);
 }
+
 function renderDeckList(){
   deckListEl.innerHTML="";
   let total=0;
@@ -968,14 +1040,17 @@ function renderDeckList(){
     const minus=document.createElement('button'); minus.className='btn small ghost'; minus.textContent='-';
     const plus=document.createElement('button'); plus.className='btn small ghost'; plus.textContent='+';
     const del=document.createElement('button'); del.className='btn small alt'; del.textContent='Retirer';
+
     minus.onclick=()=>{ const v=(DB.items.get(path)||0)-1; if(v<=0){ DB.items.delete(path);} else { DB.items.set(path,v);} renderDeckList(); };
     plus.onclick=()=>{ const v=(DB.items.get(path)||0)+1; DB.items.set(path,v); renderDeckList(); };
     del.onclick =()=>{ DB.items.delete(path); renderDeckList(); };
+
     row.append(name, badge, minus, plus, del);
     deckListEl.appendChild(row);
   }
   deckCountEl.textContent = total;
 }
+
 function exportDeckTxt(){
   const lines=[];
   for(const [path, qty] of DB.items.entries()){
@@ -988,68 +1063,7 @@ function exportDeckTxt(){
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
 
-/* ===== Échanger Mana (2 -> 1) ===== */
-function openExchangeDialog(pid){
-  const p = G.players[pid];
-  const root=document.createElement('div');
-  root.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:140";
-  root.innerHTML=`<div style="width:min(520px,96vw);background:#0b0f1a;border:1px solid #2a3358;padding:14px;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.6)">
-    <h4 style="margin:0 0 8px">Échanger Mana</h4>
-    <div class="hint" style="margin-bottom:8px">Choisissez <b>2 mana</b> dans votre réserve (peu importe l’élément), puis choisissez l’élément reçu. Le mana reçu va dans la <b>plus petite pile</b> de l’Éther.</div>
-    <div id="pick2" class="reserve-bar" style="justify-content:flex-start;margin-bottom:8px"></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <span>Obtenir :</span>
-      ${ELEMENTS.map(e=>`<button class="btn small alt" data-get="${e}"><img src="${iconUrl[e]}" alt="" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px">${e}</button>`).join('')}
-    </div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
-      <button class="btn small ghost" id="cx">Annuler</button>
-    </div>
-  </div>`;
-  document.body.appendChild(root);
-
-  // Sélection jusqu'à 2 mana à payer
-  const sel={}; for(const e of ELEMENTS) sel[e]=0;
-  const wrap=root.querySelector('#pick2');
-  function renderSel(){
-    wrap.innerHTML="";
-    for(const e of ELEMENTS){
-      const have=p.reserve[e]||0, take=sel[e]||0;
-      const item=document.createElement('div'); item.className='res-item';
-      const img=document.createElement('img'); img.src=iconUrl[e]; img.alt=e; img.title=e;
-      const name=document.createElement('span'); name.textContent=e;
-      const cnt=document.createElement('b'); cnt.textContent=`${take}/${have}`;
-      const minus=document.createElement('button'); minus.className='btn small ghost'; minus.textContent='-';
-      const plus=document.createElement('button'); plus.className='btn small ghost'; plus.textContent='+';
-      minus.onclick=()=>{ if(sel[e]>0){ sel[e]-=1; renderSel(); } };
-      plus.onclick =()=>{ const total=Object.values(sel).reduce((a,b)=>a+b,0); if(total>=2) return; if((p.reserve[e]||0)>sel[e]){ sel[e]+=1; renderSel(); } };
-      item.append(img,name,cnt,minus,plus);
-      wrap.appendChild(item);
-    }
-  }
-  renderSel();
-
-  // Choix de l’élément à obtenir
-  root.querySelectorAll('[data-get]').forEach(b=>{
-    b.onclick=()=>{
-      const total=Object.values(sel).reduce((a,b)=>a+b,0);
-      if(total!==2){ alert("Sélectionnez exactement 2 mana à dépenser."); return; }
-      // payer
-      for(const e of ELEMENTS){ p.reserve[e] = Math.max(0,(p.reserve[e]||0) - sel[e]); }
-      // recevoir
-      const el=b.getAttribute('data-get');
-      const pile = etherSmallest(); G.ether[pile].push(el);
-      document.body.removeChild(root);
-      render(); netSync();
-    };
-  });
-  root.querySelector('#cx').onclick=()=>document.body.removeChild(root);
-}
-
-// boutons échange (ennemi / moi)
-document.getElementById('oppExchangeBtn').onclick = ()=> openExchangeDialog(other(G.current));
-document.getElementById('meExchangeBtn').onclick  = ()=> openExchangeDialog(G.current);
-
-/* ===== Boot ===== */
+/* =================== Boot =================== */
 async function boot(reset=false){
   if(reset){ G.players["0"]=null; G.players["1"]=null; G.ether=[[],[]]; G.log=[]; }
   await loadLocalCardsIndex();
@@ -1059,6 +1073,7 @@ async function boot(reset=false){
   render();
 }
 boot();
+
 </script>
 </body>
 </html>
