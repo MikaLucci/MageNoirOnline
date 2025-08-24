@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mage Noir</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unica+One&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    :root{
+      color-scheme:dark;
+      --air:#60a5fa; --feu:#f87171; --eau:#38bdf8; --vegetal:#34d399; --mineral:#cbd5e1; --arcane:#a78bfa;
+      --panel:rgba(24,26,38,.82);
+      --panel-2:rgba(16,18,30,.82);
+      --border:#262b46;
+      --cardW:160px; --cardH:218px;
+      --gutter:10px;
+      --chip:#1a2036;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 600px at 50% -10%, #12162a 0%, #0a0c16 60%), #0a0c16;
+      color:#eaf0ff;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', 'Noto Sans', sans-serif;
+      height:100vh; overflow:visible;
+    }
+
+    header{
+      display:grid; grid-template-columns: 1fr; gap:6px;
+      padding:8px 16px; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
+      border-bottom:1px solid var(--border); position:sticky; top:0; z-index:40; backdrop-filter:blur(8px);
+    }
+    header .rowbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    header h1{font-family:'Unica One'; font-size:20px; margin:0 12px 0 0; letter-spacing:.5px}
+    .spacer{flex:1}
+    .btn{background:linear-gradient(180deg,#2c3150,#24293e); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; box-shadow:0 8px 22px rgba(0,0,0,.35)}
+    .btn.alt{background:linear-gradient(180deg,#263046,#1e2538)}
+    .btn.ghost{background:transparent; border:1px solid #33405f}
+    .btn.small{padding:6px 10px; font-size:13px; border-radius:9px}
+    .input{background:#0f1426;border:1px solid #2e3656;color:#dfe6ff;border-radius:10px;padding:7px 10px;min-width:150px}
+    .chip{background:var(--chip); border:1px solid #2b3350; color:#dfe6ff; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer}
+    .chip.active{outline:2px solid #7aa2ff}
+
+    main{height:calc(100vh - 98px); display:grid; grid-template-columns: 1fr 420px; gap:12px}
+    #board{padding:12px; overflow:auto}
+    .rightcol{padding:10px; display:flex; flex-direction:column; gap:12px; overflow:auto; min-height:0;
+      border-left:1px solid var(--border); background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));}
+
+    .zone{border:1px solid var(--border); border-radius:16px; padding:15px; background:var(--panel);
+      box-shadow:0 8px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);}
+    .zone h3{margin:0 0 8px; font-size:13px; font-weight:700; text-align:center; color:#cfd3ff; letter-spacing:.2px}
+    .row{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-start; align-items:center}
+
+    .slots{display:flex; gap:14px; align-items:center; justify-content:flex-start}
+    .slot{width:var(--cardW); height:var(--cardH); border-radius:14px; border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); position:relative; overflow:hidden}
+    .slot .back, .slot .top{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+    .slot .badge{position:absolute; right:6px; top:6px; background:rgba(10,12,20,.8); border:1px solid #34405f; padding:2px 6px; border-radius:8px; font-size:12px}
+    .slot .label{position:absolute; left:6px; bottom:6px; background:rgba(10,12,20,.7); border:1px solid #34405f; padding:2px 6px; border-radius:8px; font-size:12px}
+
+    .pile{min-height:0; border:1px dashed rgba(255,255,255,.08); border-radius:12px; padding:100px; background:var(--panel-2)}
+    .hand{min-height:var(--cardH); border:1px dashed rgba(255,255,255,.10); border-radius:12px; padding:8px; background:var(--panel-2); display:flex; justify-content:center; align-items:flex-end}
+    .card{width:var(--cardW); height:var(--cardH); border-radius:14px; border:1px solid #2a2f52; padding:0; position:relative; overflow:hidden; display:flex; align-items:stretch; justify-content:center}
+    .card-img{width:100%; height:100%; object-fit:cover; display:block; pointer-events:none;}
+
+    .reserve-bar{display:flex; gap:8px; justify-content:center; align-items:center; padding:6px; background:rgba(12,14,26,.6); border:1px dashed #2a2d4a; border-radius:10px; flex-wrap:wrap}
+    .res-item{display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid #394467; background:rgba(255,255,255,.04); font-size:12px}
+    .res-item img{width:18px; height:18px; object-fit:contain; display:block}
+
+    .life-sep{position:sticky; top:8px; display:flex; align-items:center; justify-content:center; gap:18px; margin:8px 0 12px; padding:6px 10px; border:1px dashed var(--border); border-radius:12px; background:rgba(14,16,28,.55); backdrop-filter: blur(4px);}
+    .pv-wrap{display:flex; align-items:center; gap:6px}
+    .pv-badge{font-size:14px; padding:4px 10px; border-radius:10px; background:linear-gradient(180deg,#1b1b2a,#141428); border:1px solid #2b2b45; font-weight:800}
+    .life-side{display:flex; align-items:center; gap:8px; font-weight:700; color:#cfd3ff}
+    .life-divider{opacity:.7; font-weight:800; letter-spacing:.5px}
+    .pv-btn{width:26px;height:26px;border-radius:8px;border:1px solid #33405f;background:#12162a;cursor:pointer}
+    .pv-btn:active{transform:scale(.96)}
+
+    .ether--vertical{display:flex; flex-direction:column; gap:12px}
+    .pile-card{border:1px solid var(--border); border-radius:14px; padding:10px; background:rgba(10,12,22,.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,.04)}
+    .pile-card button{display:block; margin:8px auto 0;}
+    .pile-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
+    .bar{height:6px; background:#0f1220; border:1px solid #222647; border-radius:999px; overflow:hidden}
+    .bar-inner{height:100%; background:linear-gradient(90deg,#646cff,#22d3ee); width:0%}
+
+    .mana-panel{display:flex; flex-direction:column; gap:8px; min-height:0}
+    .mana-head{display:flex; align-items:center; gap:8px; justify-content:space-between}
+    .mana-scroller{flex:1; display:flex; flex-direction:column; gap:8px; overflow:auto; min-height:0}
+    .mcard{position:relative; height:116px; border-radius:12px; border:1px solid #2b3350; background:#0b0f1a; overflow:hidden; cursor:pointer; display:flex; align-items:center; justify-content:center}
+    .mcard img{height:100%; width:auto; display:block; user-select:none; pointer-events:none; opacity:.95}
+    .mcard:active{transform:scale(.98)}
+    .mana-remaining{font-weight:800}
+    .hint{font-size:12px; color:#9fb5ff}
+    .mana-controls{margin-top:auto; display:flex; justify-content:flex-end; gap:6px}
+
+    .mt-6{margin-top:6px}
+    #oppBoard.pile{padding:0 !important;}
+
+    /* Zoom */
+    #zoomPopup{
+      position: fixed;
+      width: 360px;
+      height: 504px;
+      background:#0c1020;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 12px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04);
+      display: none;
+      pointer-events: none;
+      z-index: 9999;
+      overflow:hidden;
+    }
+    #zoomPopup img{ width:100%; height:100%; object-fit:contain; display:block; image-rendering:auto; }
+    .card-zoomable{ cursor: default; }
+    body.dragging .card-zoomable{ cursor: grabbing; }
+
+    /* Drop targets */
+    .drop-target{position:relative}
+    .drop-target.is-dragover{ outline:2px dashed #7aa2ff; background: rgba(122,162,255,.08); }
+    .prepared-wrap,
+    .channeled-wrap{
+      padding: 12px 8px 10px !important;
+      height: calc(var(--cardH) + 10px);
+      min-height: calc(var(--cardH) + 10px);
+      max-height: calc(var(--cardH) + 10px);
+      display:flex; align-items:flex-end; gap:8px;
+      overflow-x:auto; overflow-y:hidden;
+    }
+    .prepared-wrap .card, .channeled-wrap .card{ margin:0; }
+
+    /* Partage */
+    .share{display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:12px; color:#9fb5ff;}
+    .share code{background:#0f1426;border:1px solid #2e3656;color:#dfe6ff;border-radius:8px;padding:4px 6px;}
+
+    /* Modal Deckbuilder */
+    .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:120; }
+    .modal-inner{
+      width:min(1100px, 96vw); max-height:92vh; overflow:hidden;
+      display:flex; flex-direction:column; gap:10px;
+      background:rgba(16,18,30,.98); border:1px solid #2b3350; border-radius:16px; padding:14px;
+      box-shadow:0 24px 80px rgba(0,0,0,.6);
+    }
+    .db-head{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .db-body{display:grid; grid-template-columns: 1fr 320px; gap:12px; min-height:0; flex:1}
+    .db-gallery{border:1px dashed #2b3350; border-radius:12px; padding:10px; overflow:auto}
+    .db-grid{display:grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:10px}
+    .thumb{
+      position:relative; border:1px solid #2b3350; border-radius:12px; overflow:hidden; background:#0b0f1a; padding-bottom:36px;
+      display:flex; align-items:center; justify-content:center; height:220px;
+    }
+    .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .thumb .overlay{
+      position:absolute; left:0; right:0; bottom:0; height:36px;
+      background:linear-gradient(0deg, rgba(0,0,0,.85), rgba(0,0,0,0));
+      display:flex; align-items:center; gap:6px; padding:6px 8px;
+    }
+    .qty{display:flex; align-items:center; gap:4px}
+    .qty button{width:24px; height:24px; border-radius:6px; border:1px solid #33405f; background:#12162a; cursor:pointer}
+    .add-btn{margin-left:auto}
+    .cardname{position:absolute; left:6px; top:6px; background:rgba(0,0,0,.6); border:1px solid #33405f; border-radius:8px; padding:2px 6px; font-size:11px}
+    .db-side{border:1px dashed #2b3350; border-radius:12px; padding:10px; display:flex; flex-direction:column; min-height:0}
+    .deck-list{flex:1; overflow:auto; display:flex; flex-direction:column; gap:6px}
+    .deck-row{display:flex; align-items:center; gap:8px; background:#0b0f1a; border:1px solid #2b3350; border-radius:10px; padding:6px}
+    .deck-row .name{flex:1}
+    .pill{font-size:11px; padding:2px 6px; border-radius:999px; border:1px solid #2b3350; background:#12162a}
+  </style>
+</head>
+<body>
+<header>
+  <div class="rowbar">
+    <h1>Mage Noir</h1>
+    <button class="btn small alt" id="createBtn" type="button">Créer une partie</button>
+    <input id="roomId" class="input" placeholder="Code salle (ex: ABC123)" />
+    <button class="btn small alt" id="joinBtn" type="button">Rejoindre</button>
+    <button class="btn small ghost" id="restartBtn">Relancer la partie</button>
+    <span class="spacer"></span>
+    <span id="netStatus" style="font-size:12px;color:#9fb5ff"></span>
+    <span class="share" id="shareWrap" style="display:none">
+      • Lien : <code id="shareUrl"></code>
+      <button class="btn small ghost" id="copyLinkBtn" type="button">Copier</button>
+    </span>
+  </div>
+  <div class="rowbar">
+    <button class="btn small" id="deckbuilderBtn" type="button">Deckbuilder</button>
+    <label class="btn small alt" style="cursor:pointer">
+      Importer Deck
+      <input id="deckFile" type="file" accept=".txt,.deck,.csv" style="display:none">
+    </label>
+  </div>
+</header>
+
+<main>
+  <div id="board">
+    <!-- ENNEMI -->
+    <div class="zone" style="margin-bottom:var(--gutter)">
+      <div class="slots" style="justify-content:flex-start">
+        <div style="display:flex; flex-direction:column; gap:10px; margin-right:10px">
+          <div class="slot" id="oppDiscardSlot"><span class="label">Défausse</span></div>
+          <div class="slot" id="oppDeckSlot"><img class="back" src="back.png" alt=""><span class="badge" id="oppDeckCnt"></span><span class="label">Deck</span></div>
+        </div>
+        <div style="flex:1; flex-direction:column; gap:10px">
+          <div class="hand row" id="oppHand"></div>
+          <div class="row" style="gap:10px">
+            <div class="zone" style="flex:1">
+              <h3>Sorts préparés / Permanents</h3>
+              <div id="oppPrepared" class="pile prepared-wrap"></div>
+            </div>
+            <div class="zone" style="flex:1">
+              <h3>Composants / Sorts canalisés</h3>
+              <div id="oppChanneled" class="pile channeled-wrap"></div>
+            </div>
+          </div>
+          <div id="oppReserve" class="reserve-bar" style="margin-bottom:6px"></div>
+          <div id="oppBoard" class="pile"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PV + Fin du tour -->
+    <div class="life-sep">
+      <div class="life-side">
+        <span>Ennemi</span>
+        <div class="pv-wrap">
+          <button class="pv-btn" id="oppLifeMinus">–</button>
+          <span id="oppLife" class="pv-badge">20</span>
+          <button class="pv-btn" id="oppLifePlus">+</button>
+        </div>
+      </div>
+      <button class="btn" id="endBtn">Fin du tour</button>
+      <div class="life-side">
+        <div class="pv-wrap">
+          <button class="pv-btn" id="meLifeMinus">–</button>
+          <span id="meLife" class="pv-badge">20</span>
+          <button class="pv-btn" id="meLifePlus">+</button>
+        </div>
+        <span>Moi</span>
+      </div>
+    </div>
+
+    <!-- JOUEUR -->
+    <div class="zone">
+      <div class="slots" style="justify-content:flex-start">
+        <div style="display:flex; flex-direction:column; gap:10px; margin-right:10px">
+          <div class="slot" id="meDeckSlot"><img class="back" src="back.png" alt=""><span class="badge" id="meDeckCnt"></span><span class="label">Deck</span></div>
+          <div class="slot" id="meDiscardSlot"><span class="label">Défausse</span></div>
+        </div>
+        <div style="flex:1; display:flex; flex-direction:column; gap:10px">
+          <div id="meReserve" class="reserve-bar"></div>
+          <div class="row" style="gap:10px">
+            <div class="zone" style="flex:1">
+              <h3>Sorts préparés / Permanents</h3>
+              <div id="mePrepared" class="pile prepared-wrap" data-drop="prepared"></div>
+            </div>
+            <div class="zone" style="flex:1">
+              <h3>Composants / Sorts canalisés</h3>
+              <div id="meChanneled" class="pile channeled-wrap" data-drop="channeled"></div>
+            </div>
+          </div>
+          <div class="hand row" id="meHand" data-drop="hand"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Colonne droite -->
+  <div class="rightcol">
+    <div class="zone">
+      <h3>Éther Disponible</h3>
+      <div class="ether--vertical">
+        <div class="pile-card">
+          <div class="pile-head"><div><b>Pile 1</b></div><div><span id="p0Total">0</span> Mana</div></div>
+          <div class="bar"><div class="bar-inner" id="p0Bar"></div></div>
+          <div class="orbslist" id="p0Orbs" style="margin:6px 0 8px; display:flex; gap:4px; flex-wrap:wrap"></div>
+          <button class="btn small alt" id="takeP0Btn">Prendre Pile 1</button>
+        </div>
+        <div class="pile-card">
+          <div class="pile-head"><div><b>Pile 2</b></div><div><span id="p1Total">0</span> Mana</div></div>
+          <div class="bar"><div class="bar-inner" id="p1Bar"></div></div>
+          <div class="orbslist" id="p1Orbs" style="margin:6px 0 8px; display:flex; gap:4px; flex-wrap:wrap"></div>
+          <button class="btn small alt" id="takeP1Btn">Prendre Pile 2</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mana-panel zone">
+      <div class="mana-head"><div>Mana restant à récupérer : <span id="pickRemain" class="mana-remaining">0</span></div></div>
+      <div class="mana-scroller" id="manaCards">
+        <div class="mcard" data-el="Eau"><img src="https://i.ibb.co/CKSX4d84/Mana-Eau.png" alt="Eau"></div>
+        <div class="mcard" data-el="Feu"><img src="https://i.ibb.co/hJLnwpLw/Mana-Feu.png" alt="Feu"></div>
+        <div class="mcard" data-el="Air"><img src="https://i.ibb.co/H0Fr0Sf/Mana-Air.png" alt="Air"></div>
+        <div class="mcard" data-el="Végétal"><img src="https://i.ibb.co/jPFkXDhK/Mana-Vegetal.png" alt="Végétal"></div>
+        <div class="mcard" data-el="Minéral"><img src="https://i.ibb.co/Wvchxx90/Mana-Mineral.png" alt="Minéral"></div>
+        <div class="mcard" data-el="Arcane"><img src="https://i.ibb.co/MkZztWwN/Mana-Arcane.png" alt="Arcane"></div>
+      </div>
+      <div class="hint">→ Vous avez choisi :</div>
+      <div id="pickedList" class="reserve-bar mt-6" style="justify-content:flex-start"></div>
+      <div class="mana-controls">
+        <button class="btn small alt" id="pickerClear">Effacer</button>
+        <button class="btn small" id="pickerOk">OK</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Modal Deckbuilder -->
+<div id="deckbuilderModal" class="modal" aria-hidden="true">
+  <div class="modal-inner">
+    <div class="db-head">
+      <h3 style="margin:0 8px 0 0">Deckbuilder</h3>
+      <div id="eltChips" class="row"></div>
+      <span class="spacer"></span>
+      <button class="btn small ghost" id="dbClose">Fermer</button>
+    </div>
+    <div class="db-body">
+      <div class="db-gallery">
+        <div id="dbGrid" class="db-grid"></div>
+      </div>
+      <div class="db-side">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px">
+          <b>Deck</b>
+          <div class="pill">Cartes: <span id="deckCount">0</span></div>
+        </div>
+        <div id="deckList" class="deck-list"></div>
+        <div style="display:flex; gap:6px; margin-top:8px">
+          <button class="btn small alt" id="dbClear">Vider</button>
+          <button class="btn small" id="dbExport">Exporter .txt</button>
+          <label class="btn small ghost" style="cursor:pointer; margin-left:auto">
+            Importer .txt
+            <input id="dbImportFile" type="file" accept=".txt" style="display:none">
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Zoom -->
+<div id="zoomPopup" aria-hidden="true"><img alt="aperçu carte"></div>
+
+<script>
+/* =================== Réseau (Socket.IO) =================== */
+const net = {
+  socket: null,
+  room: null,
+  connect(roomId){
+    if(!this.socket){
+      this.socket = io({ autoConnect:false });
+      this.wire();
+    }
+    this.room = roomId;
+    try{ this.socket.connect(); }catch{}
+  },
+  wire(){
+    const s = this.socket;
+    s.on('connect',   ()=> setNetStatus('Connecté', '#a7f3d0'));
+    s.on('disconnect',()=> setNetStatus('Déconnecté', '#fca5a5'));
+    s.on('connect_error', ()=> setNetStatus('Erreur réseau', '#fca5a5'));
+    s.on('room:joined', (payload)=> {
+      if(payload?.room===net.room){
+        setNetStatus(`Salle ${net.room}`, '#93c5fd');
+        showShareLink(net.room);
+      }
+    });
+    s.on('state:remote', (payload)=>{
+      if(!payload || payload.room!==net.room) return;
+      applyRemoteState(payload.state||{});
+    });
+  },
+  emit(type, data){
+    if(!this.socket || !this.room || this.socket.disconnected) return;
+    this.socket.emit(type, { room:this.room, ...data });
+  }
+};
+function setNetStatus(text, color='#9fb5ff'){
+  const el = document.getElementById('netStatus');
+  if(el){ el.textContent = `• ${text}`; el.style.color = color; }
+}
+function showShareLink(code){
+  const wrap = document.getElementById('shareWrap');
+  const el = document.getElementById('shareUrl');
+  const url = `${location.origin}/#${code}`;
+  el.textContent = url;
+  wrap.style.display = 'inline-flex';
+}
+document.getElementById('copyLinkBtn').addEventListener('click', async ()=>{
+  const url = document.getElementById('shareUrl').textContent;
+  try{ await navigator.clipboard.writeText(url); setNetStatus('Lien copié dans le presse-papiers', '#a7f3d0'); }
+  catch{ setNetStatus('Impossible de copier le lien', '#fca5a5'); }
+});
+
+/* =================== Helpers généraux =================== */
+const ELEMENTS = ["Air","Feu","Eau","Végétal","Minéral","Arcane"];
+function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+const EL_COL={Air:getCSS('--air'),Feu:getCSS('--feu'),Eau:getCSS('--eau'),"Végétal":getCSS('--vegetal'),"Minéral":getCSS('--mineral'),Arcane:getCSS('--arcane')};
+const isPathId = (id)=> /[\\/]|\\.(png|jpe?g|webp)$/i.test(String(id||""));
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function emptyRes(){const r={}; for(const e of ELEMENTS) r[e]=0; return r; }
+function other(id){return id==="0"?"1":"0";}
+
+/* =================== Cartes – index local =================== */
+let CARD_INDEX={};
+let LOCAL_CARDS = { list:[], byPath:new Map(), byBase:new Map(), byElem:new Map(), loaded:false };
+
+function fileBase(path){ return String(path).split('/').pop(); }
+function getElementFromPath(path){
+  // attend "cartes/<Element>/fichier"
+  const parts = String(path).split('/');
+  const ix = parts.indexOf('cartes');
+  if(ix>=0 && parts[ix+1]) return parts[ix+1];
+  // fallback: déduire du nom (pas fiable) -> "Inconnu"
+  return "Inconnu";
+}
+function prettyNameFromFilename(base){
+  // exemple: imgi_101_Gouttelette.png -> "Gouttelette"
+  const noExt = base.replace(/\.[^.]+$/,'');
+  const m = noExt.match(/^imgi?_\d+_(.+)$/i);
+  const core = m ? m[1] : noExt;
+  return core.replace(/[-_]+/g,' ').replace(/\b\w/g, c=>c.toUpperCase()).replace(/ D /g,' d ').replace(/ L /g,' l ');
+}
+
+async function loadLocalCardsIndex(){
+  if(LOCAL_CARDS.loaded) return LOCAL_CARDS;
+  try{
+    const res = await fetch("cards.json", {cache:"no-store"});
+    if(!res.ok) throw new Error("cards.json introuvable");
+    const list = await res.json(); // ex: ["cartes/Air/...", "cartes/Eau/..."]
+    LOCAL_CARDS.list = Array.isArray(list) ? list.map(p=>String(p).replace(/\\/g,'/')) : [];
+    LOCAL_CARDS.byPath.clear();
+    LOCAL_CARDS.byBase.clear();
+    LOCAL_CARDS.byElem.clear();
+
+    for(const p of LOCAL_CARDS.list){
+      const base = fileBase(p).toLowerCase();
+      const elem = getElementFromPath(p);
+      LOCAL_CARDS.byPath.set(p, p);
+      LOCAL_CARDS.byBase.set(base, p);
+      if(!LOCAL_CARDS.byElem.has(elem)) LOCAL_CARDS.byElem.set(elem, []);
+      LOCAL_CARDS.byElem.get(elem).push(p);
+
+      // aussi dans CARD_INDEX pour l’affichage plateau
+      CARD_INDEX[p] = CARD_INDEX[p] || { id:p, name:prettyNameFromFilename(fileBase(p)), image:p, element:elem };
+    }
+    LOCAL_CARDS.loaded = true;
+  }catch(e){
+    alert("cards.json introuvable ou invalide. Place-le à la racine à côté d’index.html.\n" + e.message);
+  }
+  return LOCAL_CARDS;
+}
+
+/* =================== État de partie =================== */
+function makePlayer(starter){
+  const deck=shuffle(starter);
+  return { life:20, reserve:emptyRes(), hand:[], deck, discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
+}
+const G={
+  players:{ "0":null, "1":null},
+  current:"0",
+  turn:1,
+  ether:[[],[]],
+  _flip:null,
+  step:"recover",
+  log:[],
+  picker:{desired:3, counts:emptyRes()},
+  startChoice:{ active:false, pid:null, pileA:[], pileB:[] }
+};
+
+/* =================== Réseau – sync public =================== */
+function buildPublicState(){
+  const me = G.players["0"];
+  return {
+    me:{
+      life: me.life,
+      reserve: me.reserve,
+      prepared: me.prepared,
+      channeled: me.channeled,
+      board: me.board,
+      discardTop: me.discard.length? me.discard[me.discard.length-1] : null,
+      discardCnt: me.discard.length||0,
+      deckCnt: me.deck.length||0,
+      handCnt: me.hand.length||0
+    },
+    ether: G.ether, turn: G.turn, current: G.current
+  };
+}
+function applyRemoteState(state){
+  const opp = G.players["1"];
+  if(!opp) return;
+  const src = state.me || {};
+  opp.life = src.life ?? opp.life;
+  opp.reserve = src.reserve || opp.reserve;
+  opp.prepared = Array.isArray(src.prepared)? src.prepared : opp.prepared;
+  opp.channeled = Array.isArray(src.channeled)? src.channeled : opp.channeled;
+  opp.board = Array.isArray(src.board)? src.board : opp.board;
+  opp.discard = src.discardTop ? [ { id: src.discardTop } ] : [];
+  opp.deck = new Array(Number(src.deckCnt||0)).fill(null);
+  opp.hand = new Array(Number(src.handCnt||0)).fill(null);
+
+  if(Array.isArray(state.ether)) G.ether = state.ether;
+  if(typeof state.turn==="number") G.turn = state.turn;
+  if(state.current==="0" || state.current==="1") G.current = state.current;
+
+  render();
+}
+let lastSync=0;
+function netSync(){
+  if(!net.room || !net.socket || net.socket.disconnected) return;
+  const now = Date.now();
+  if(now - lastSync < 150) return;
+  lastSync = now;
+  net.emit('state:update', { state: buildPublicState() });
+}
+
+/* =================== Éther & Sélecteur =================== */
+const iconUrl = {
+  "Air": "https://magenoir.com/img/mage-noir/pictograms/air_icon.png",
+  "Feu": "https://magenoir.com/img/mage-noir/pictograms/fire_icon.png",
+  "Eau": "https://magenoir.com/img/mage-noir/pictograms/water_icon.png",
+  "Végétal": "https://magenoir.com/img/mage-noir/pictograms/vegetal_icon.png",
+  "Minéral": "https://magenoir.com/img/mage-noir/pictograms/mineral_icon.png",
+  "Arcane": "https://magenoir.com/img/mage-noir/pictograms/arcane_icon.png"
+};
+function etherSmallest(){ return (G.ether[0].length<=G.ether[1].length)?0:1; }
+function orbsHTML(arr){
+  return arr.map(e => `<img src="${iconUrl[e]}" alt="${e}" title="${e}" style="width:24px;height:24px;object-fit:contain;filter:drop-shadow(0 0 1px ${EL_COL[e]});">`).join("");
+}
+function renderEther(){
+  const t0=G.ether[0].length, t1=G.ether[1].length, sum=(t0+t1)||1;
+  document.getElementById("p0Total").textContent=t0;
+  document.getElementById("p1Total").textContent=t1;
+  document.getElementById("p0Bar").style.width=((t0/sum)*100).toFixed(0)+"%";
+  document.getElementById("p1Bar").style.width=((t1/sum)*100).toFixed(0)+"%";
+  document.getElementById("p0Orbs").innerHTML=orbsHTML(G.ether[0]);
+  document.getElementById("p1Orbs").innerHTML=orbsHTML(G.ether[1]);
+}
+const manaCards = document.getElementById('manaCards');
+manaCards.addEventListener('click',(e)=>{
+  const card = e.target.closest('.mcard'); if(!card) return;
+  const el = card.dataset.el;
+  const total = Object.values(G.picker.counts).reduce((a,b)=>a+b,0);
+  if(total>=G.picker.desired) return;
+  G.picker.counts[el]=(G.picker.counts[el]||0)+1;
+  renderPicker();
+});
+document.getElementById('pickerClear').onclick=()=>{ G.picker.counts=emptyRes(); renderPicker(); };
+document.getElementById('pickerOk').onclick=()=>{
+  const total = Object.values(G.picker.counts).reduce((a,b)=>a+b,0);
+  if(total!==G.picker.desired){ alert("Sélectionnez exactement "+G.picker.desired+" Mana."); return; }
+  const arr=[]; for(const [el,n] of Object.entries(G.picker.counts)) for(let i=0;i<n;i++) arr.push(el);
+  etherAdd(arr);
+  G.picker.counts=emptyRes();
+  G.step="choosePile";
+  renderPicker();
+};
+function etherAdd(manas){
+  while(manas.length){
+    const el=manas.shift();
+    const p1=G.ether[0].length, p2=G.ether[1].length;
+    const first=(p1<=p2)?0:1;
+    const target=(G._flip===null)?first:G._flip;
+    G.ether[target].push(el);
+    G._flip=1-target;
+  }
+  G._flip=null; renderEther(); netSync();
+}
+function renderPicker(){
+  const total = Object.values(G.picker.counts).reduce((a,b)=>a+b,0);
+  document.getElementById('pickRemain').textContent = (G.picker.desired - total);
+  const picked=document.getElementById('pickedList');
+  picked.innerHTML="";
+  for(const e of ELEMENTS){
+    const n=G.picker.counts[e]||0; if(!n) continue;
+    const item=document.createElement('div'); item.className='res-item';
+    const img=document.createElement('img'); img.src=iconUrl[e]; img.alt=e; img.title=e;
+    const name=document.createElement('span'); name.textContent=e;
+    const cnt=document.createElement('b'); cnt.textContent='×'+n;
+    item.append(img, name, cnt);
+    picked.appendChild(item);
+  }
+}
+document.getElementById("takeP0Btn").onclick=()=>takePile(0);
+document.getElementById("takeP1Btn").onclick=()=>takePile(1);
+function takePile(i){
+  if(G.step!=="choosePile"){ alert("Ajoutez d’abord 3 Mana."); return; }
+  const me=G.players[G.current];
+  if(G.ether[i].length===0){ alert("Pile vide."); return; }
+  for(const el of G.ether[i]){ me.reserve[el]=(me.reserve[el]||0)+1; }
+  G.ether[i]=[]; G.step="main"; render(); netSync();
+}
+
+/* =================== PV =================== */
+function changeLife(pid, delta){
+  const p = G.players[pid];
+  p.life = Math.max(0, (p.life||0) + delta);
+  render(); netSync();
+}
+document.getElementById('meLifeMinus').onclick = ()=> changeLife(G.current, -1);
+document.getElementById('meLifePlus').onclick  = ()=> changeLife(G.current, +1);
+document.getElementById('oppLifeMinus').onclick = ()=> changeLife(other(G.current), -1);
+document.getElementById('oppLifePlus').onclick  = ()=> changeLife(other(G.current), +1);
+
+/* =================== Drag & Drop =================== */
+let dragCardId = null;
+function cardDragStart(ev, cid){
+  dragCardId = cid; document.body.classList.add('dragging');
+  ev.dataTransfer.setData("text/plain", cid); ev.dataTransfer.effectAllowed = "move";
+}
+function clearDrag(){ dragCardId=null; document.body.classList.remove('dragging'); }
+function attachDrop(el, dest){
+  if(!el) return;
+  el.classList.add('drop-target');
+  el.addEventListener('dragover', (e)=>{ e.preventDefault(); e.dataTransfer.dropEffect='move'; el.classList.add('is-dragover'); });
+  el.addEventListener('dragleave', ()=>{ el.classList.remove('is-dragover'); });
+  el.addEventListener('drop', (e)=>{
+    e.preventDefault(); el.classList.remove('is-dragover');
+    if(!dragCardId){ clearDrag(); return; }
+    const me = G.players[G.current];
+    let moved = false;
+    const fromHandIdx = me.hand.indexOf(dragCardId);
+    if(fromHandIdx !== -1){ me.hand.splice(fromHandIdx,1); moved=true; }
+    const fromPrepIdx = me.prepared.findIndex(o=>o.id===dragCardId);
+    if(!moved && fromPrepIdx!==-1){ me.prepared.splice(fromPrepIdx,1); moved=true; }
+    const fromChanIdx = me.channeled.findIndex(o=>o.id===dragCardId);
+    if(!moved && fromChanIdx!==-1){ me.channeled.splice(fromChanIdx,1); moved=true; }
+    const fromDiscardIdx = me.discard.lastIndexOf(dragCardId);
+    if(!moved && fromDiscardIdx!==-1){ me.discard.splice(fromDiscardIdx,1); moved=true; }
+
+    if(!moved){ clearDrag(); return; }
+
+    if(dest === 'prepared'){ me.prepared.push({ id: dragCardId }); }
+    else if(dest === 'channeled'){ me.channeled.push({ id: dragCardId }); }
+    else if(dest === 'hand'){ me.hand.push(dragCardId); }
+    else if(dest === 'discard'){ me.discard.push(dragCardId); }
+
+    clearDrag(); render(); netSync();
+  });
+}
+attachDrop(document.getElementById('mePrepared'),  'prepared');
+attachDrop(document.getElementById('meChanneled'), 'channeled');
+attachDrop(document.getElementById('meHand'),      'hand');
+attachDrop(document.getElementById('meDiscardSlot'),'discard');
+
+function onCardWrapper(cardEl, cid){
+  cardEl.setAttribute("draggable","true");
+  cardEl.addEventListener("dragstart", (ev)=>cardDragStart(ev,cid));
+}
+
+/* =================== Rendu plateau =================== */
+function cardImagePath(def){
+  if(isPathId(def.id)) return String(def.id).replace(/\\/g,'/');
+  const img=def.image||`${def.id}.jpg`;
+  return `assets/cards/${img}`;
+}
+function cardDivFromImage(src, alt="Carte"){
+  const wrap=document.createElement("div");
+  wrap.className="card card-zoomable";
+  const img=document.createElement("img");
+  img.className="card-img"; img.src=src; img.alt=alt; img.loading="lazy"; img.decoding="async"; img.setAttribute('draggable','false');
+  wrap.appendChild(img);
+  return wrap;
+}
+function renderPile(container, entries){
+  container.innerHTML="";
+  entries.forEach((obj)=>{ const def=CARD_INDEX[obj.id]||{id:obj.id,name:obj.id};
+    const el=cardDivFromImage(cardImagePath(def), def.name||def.id);
+    onCardWrapper(el, obj.id);
+    container.appendChild(el);
+  });
+}
+function renderPrepared(container, entries){ renderPile(container, entries); }
+function renderHand(container, ids){
+  container.innerHTML="";
+  ids.forEach(cid=>{
+    const def=CARD_INDEX[cid]||{id:cid,name:cid};
+    const card=cardDivFromImage(cardImagePath(def), def.name||def.id);
+    onCardWrapper(card, cid);
+    container.appendChild(card);
+  });
+}
+function renderOpponentHand(container, count){
+  container.innerHTML = "";
+  for (let i = 0; i < count; i++) {
+    const slot = document.createElement("div");
+    slot.className = "card card-zoomable";
+    const img = document.createElement("img");
+    img.className = "card-img";
+    img.src = "back.png"; img.alt = "Carte cachée"; img.setAttribute('draggable','false');
+    slot.appendChild(img);
+    container.appendChild(slot);
+  }
+}
+function renderReserveBar(el, pool){
+  el.innerHTML="";
+  for(const e of ELEMENTS){
+    const item=document.createElement('div'); item.className='res-item';
+    const img=document.createElement('img'); img.src=iconUrl[e]; img.alt=e; img.title=e;
+    const name=document.createElement('span'); name.textContent=e;
+    const cnt=document.createElement('b'); cnt.textContent=pool[e]||0;
+    item.append(img, name, cnt);
+    el.appendChild(item);
+  }
+}
+function renderDeckDiscard(){
+  const me=G.players[G.current], opp=G.players[other(G.current)];
+  document.getElementById("meDeckCnt").textContent = me.deck.length;
+  const meDiscardSlot = document.getElementById("meDiscardSlot"); meDiscardSlot.innerHTML = '<span class="label">Défausse</span>';
+  if(me.discard.length>0){
+    const topId=me.discard[me.discard.length-1]; const def=CARD_INDEX[topId]||{id:topId};
+    const img=document.createElement('img'); img.className='top'; img.src=cardImagePath(def); img.alt=def.name||topId; img.loading="lazy"; img.decoding="async";
+    img.setAttribute('draggable','true');
+    img.addEventListener('dragstart', (ev)=>cardDragStart(ev, topId));
+    meDiscardSlot.appendChild(img);
+  }
+  const oppDeckLen = Array.isArray(opp.deck)? opp.deck.length : (opp.deck||[]).length;
+  document.getElementById("oppDeckCnt").textContent = oppDeckLen;
+  const oppDiscardSlot = document.getElementById("oppDiscardSlot"); oppDiscardSlot.innerHTML = '<span class="label">Défausse</span>';
+  if(opp.discard.length>0){
+    const top = opp.discard[opp.discard.length-1];
+    const def=CARD_INDEX[top.id]||{id:top.id};
+    const img=document.createElement('img'); img.className='top'; img.src=cardImagePath(def); img.alt=def.name||top.id; img.loading="lazy"; img.decoding="async";
+    oppDiscardSlot.appendChild(img);
+  }
+}
+function render() {
+  const me = G.players[G.current], opp = G.players[other(G.current)];
+  document.getElementById("meLife").textContent = me.life;
+  document.getElementById("oppLife").textContent = opp.life;
+  renderReserveBar(document.getElementById("meReserve"), me.reserve);
+  renderReserveBar(document.getElementById("oppReserve"), opp.reserve);
+  renderEther();
+  renderPile(document.getElementById("oppBoard"), opp.board);
+  renderPrepared(document.getElementById("mePrepared"), me.prepared);
+  renderPrepared(document.getElementById("oppPrepared"), opp.prepared);
+  renderPile(document.getElementById("meChanneled"), me.channeled);
+  renderPile(document.getElementById("oppChanneled"), opp.channeled);
+  renderHand(document.getElementById("meHand"), me.hand);
+  renderOpponentHand(document.getElementById("oppHand"), opp.hand.length||0);
+  renderDeckDiscard();
+
+  attachHoverZoom();
+  document.getElementById("meDeckSlot").onclick = () => { draw(G.current, 1) };
+}
+
+/* =================== Tour =================== */
+function startTurn(){
+  const skip=(G.turn===1 && G.current==="0");
+  if(!skip){ if(!draw(G.current,1)){ alert("Deck vide"); return; } }
+  G.step="recover"; G.picker.desired=3; G.picker.counts=emptyRes(); renderPicker(); netSync();
+}
+function draw(pid,n){
+  const p=G.players[pid];
+  for(let i=0;i<n;i++){ if(p.deck.length===0) return false; const c=p.deck.shift(); if(c) p.hand.push(c); }
+  render(); netSync(); return true;
+}
+document.getElementById("endBtn").onclick=()=>{
+  const me=G.players[G.current];
+  while(me.hand.length>7){ const cid=me.hand.pop(); me.discard.push(cid); }
+  G.current=other(G.current); G.turn+=1;
+  startTurn(); render(); netSync();
+};
+
+/* =================== Drawer supprimé (source des cartes inutile en ligne) =================== */
+
+/* =================== Import Deck (plateau) =================== */
+document.getElementById('deckFile').addEventListener('change', async (ev)=>{
+  const file = ev.target.files?.[0]; if(!file) return;
+  try{
+    await loadLocalCardsIndex();
+    const txt = await file.text();
+    const {paths, unknown} = parseDeckText(txt);
+    if(!paths.length){
+      alert("Aucune carte valide trouvée.\nChaque ligne doit contenir un nom de fichier présent dans /cartes/<Élément>/ (ex: imgi_71_Lame-d-air.png).");
+      return;
+    }
+    if(unknown.length){ console.warn("Lignes ignorées:", unknown); }
+    importPlayerDeck(paths);
+  }catch(e){
+    alert("Impossible de charger votre deck : " + e.message);
+  }finally{
+    ev.target.value = "";
+  }
+});
+function parseDeckText(txt){
+  const lines = String(txt).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const paths=[], unknown=[];
+  for(const line of lines){
+    if(line.startsWith('#')) continue;
+    // autorise "cartes/Elem/fichier.png" OU seulement "fichier.png"
+    const raw = line.replace(/^"+|"+$/g,'').replace(/^'+|'+$/g,'');
+    const base = fileBase(raw).toLowerCase();
+    let p = LOCAL_CARDS.byBase.get(base);
+    if(!p && raw.toLowerCase().startsWith('cartes/')) p = raw; // si déjà chemin complet
+    if(p){ paths.push(String(p).replace(/\\/g,'/')); } else { unknown.push(line); }
+  }
+  return {paths, unknown};
+}
+function importPlayerDeck(paths){
+  paths.forEach(p=>{
+    if(!CARD_INDEX[p]) CARD_INDEX[p] = { id:p, name:prettyNameFromFilename(fileBase(p)), image:p, element:getElementFromPath(p) };
+  });
+  G.players["0"]=makePlayer(paths);
+  if(!G.players["1"]) G.players["1"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
+  G.current="0"; G.turn=1; G._flip=null; G.step="setup";
+  render(); netSync();
+  startStartingHand("0"); // choix 2x5 au début
+}
+
+/* =================== Choix main de départ 2x5 =================== */
+function startStartingHand(pid){
+  const p = G.players[pid];
+  if(!p || (p.hand && p.hand.length)) return;
+  if(p.deck.length < 10){ alert("Deck trop court pour la main initiale."); return; }
+  const drawn = p.deck.splice(0, 10);
+  const pileA = drawn.slice(0,5);
+  const pileB = drawn.slice(5,10);
+  G.startChoice = { active:true, pid, pileA, pileB };
+  // Pour simplicité ici, on garde la main automatiquement pileA (tu peux remettre une UI plus tard)
+  p.hand = pileA.slice();
+  p.deck.push(...pileB); p.deck = shuffle(p.deck);
+  G.startChoice = { active:false, pid:null, pileA:[], pileB:[] };
+  render(); netSync(); if(pid === G.current){ G.turn = 1; startTurn(); }
+}
+
+/* =================== Zoom popup =================== */
+const zoomPopup = document.getElementById('zoomPopup');
+const zoomImg   = zoomPopup.querySelector('img');
+function positionZoom(e){
+  const pad = 16;
+  const w = zoomPopup.offsetWidth || 360;
+  const h = zoomPopup.offsetHeight || 504;
+  let x = e.clientX + 20, y = e.clientY + 20;
+  if (x + w + pad > window.innerWidth)  x = window.innerWidth  - w - pad;
+  if (y + h + pad > window.innerHeight) y = window.innerHeight - h - pad;
+  zoomPopup.style.left = x + 'px'; zoomPopup.style.top  = y + 'px';
+}
+function attachHoverZoom(root=document){
+  const cards = [...root.querySelectorAll('.card-zoomable')];
+  cards.forEach(card=>{
+    card.addEventListener('mouseenter', onEnterCard, {once:false});
+    card.addEventListener('mousemove',  onMoveCard,  {once:false});
+    card.addEventListener('mouseleave', onLeaveCard, {once:false});
+  });
+}
+function onEnterCard(e){
+  const img = e.currentTarget.querySelector('img'); if(!img) return;
+  zoomImg.src = img.src; zoomPopup.style.display = 'block'; positionZoom(e);
+}
+function onMoveCard(e){ positionZoom(e); }
+function onLeaveCard(){ zoomPopup.style.display = 'none'; zoomImg.src = ''; }
+attachHoverZoom();
+
+/* =================== UI Réseau : Créer/Rejoindre =================== */
+function randomCode(){
+  const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out=''; for(let i=0;i<6;i++) out += alphabet[Math.floor(Math.random()*alphabet.length)];
+  return out;
+}
+document.getElementById('createBtn').addEventListener('click', ()=>{
+  const id = randomCode();
+  document.getElementById('roomId').value = id;
+  history.replaceState(null, '', '#'+id);
+  net.connect(id); net.emit('room:join', {}); showShareLink(id);
+});
+document.getElementById('joinBtn').addEventListener('click', ()=>{
+  let id = document.getElementById('roomId').value.trim();
+  if(!id){ alert("Entre un code de salle (ex: ABC123) ou clique sur « Créer une partie »."); return; }
+  history.replaceState(null, '', '#'+id);
+  net.connect(id); net.emit('room:join', {}); showShareLink(id);
+});
+document.getElementById('restartBtn').addEventListener('click', ()=>{
+  location.reload();
+});
+window.addEventListener('load', ()=>{
+  const hash = (location.hash||'').replace('#','').trim();
+  if(hash){
+    document.getElementById('roomId').value = hash;
+    net.connect(hash); net.emit('room:join', {}); showShareLink(hash);
+  }
+});
+
+/* =================== Deckbuilder =================== */
+const dbModal = document.getElementById('deckbuilderModal');
+const dbGrid = document.getElementById('dbGrid');
+const deckListEl = document.getElementById('deckList');
+const deckCountEl = document.getElementById('deckCount');
+const eltChips = document.getElementById('eltChips');
+
+let DB = { filter:"Tous", items: new Map() }; // key=path, val=qty
+
+document.getElementById('deckbuilderBtn').onclick = async ()=>{
+  await loadLocalCardsIndex();
+  buildElementChips();
+  renderDbGrid(); renderDeckList();
+  dbModal.style.display = 'flex';
+  attachHoverZoom(dbModal);
+};
+document.getElementById('dbClose').onclick = ()=> dbModal.style.display = 'none';
+document.getElementById('dbClear').onclick = ()=>{ DB.items.clear(); renderDeckList(); };
+document.getElementById('dbExport').onclick = ()=> exportDeckTxt();
+document.getElementById('dbImportFile').addEventListener('change', async (ev)=>{
+  const f = ev.target.files?.[0]; if(!f) return;
+  try{
+    await loadLocalCardsIndex();
+    const txt = await f.text();
+    const {paths} = parseDeckText(txt);
+    DB.items.clear();
+    for(const p of paths){ DB.items.set(p, (DB.items.get(p)||0)+1); }
+    renderDeckList();
+  }finally{ ev.target.value=""; }
+});
+
+function buildElementChips(){
+  eltChips.innerHTML="";
+  const els = Array.from(LOCAL_CARDS.byElem.keys()).filter(x=>x!=="Inconnu");
+  const order = ELEMENTS.filter(e=>els.includes(e)); // garde ordre officiel
+  const chips = ["Tous", ...order, ...els.filter(e=>!order.includes(e))];
+  for(const e of chips){
+    const b=document.createElement('button'); b.className='chip'+(DB.filter===e?' active':''); b.textContent=e;
+    b.onclick=()=>{ DB.filter=e; [...eltChips.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderDbGrid(); };
+    eltChips.appendChild(b);
+  }
+}
+
+function renderDbGrid(){
+  dbGrid.innerHTML="";
+  // liste filtrée
+  let list = LOCAL_CARDS.list;
+  if(DB.filter && DB.filter!=="Tous"){
+    const arr = LOCAL_CARDS.byElem.get(DB.filter) || [];
+    list = arr;
+  }
+  for(const p of list){
+    const base = fileBase(p);
+    const display = prettyNameFromFilename(base);
+    const card = document.createElement('div');
+    card.className='thumb card-zoomable';
+    const img = document.createElement('img'); img.src=p; img.alt=display; img.loading='lazy';
+    const title = document.createElement('div'); title.className='cardname'; title.textContent=display;
+
+    const overlay = document.createElement('div'); overlay.className='overlay';
+    const qtyWrap = document.createElement('div'); qtyWrap.className='qty';
+    const minus = document.createElement('button'); minus.textContent='–';
+    const input = document.createElement('input'); input.type='number'; input.min='1'; input.max='9'; input.value='1';
+    input.style.width='42px'; input.style.background='#0f1426'; input.style.border='1px solid #2e3656'; input.style.color='#dfe6ff'; input.style.borderRadius='8px'; input.style.padding='2px 6px';
+    const plus = document.createElement('button'); plus.textContent='+';
+    minus.onclick=()=>{ const v=Math.max(1, (parseInt(input.value)||1)-1); input.value=String(v); };
+    plus.onclick=()=>{ const v=Math.min(9, (parseInt(input.value)||1)+1); input.value=String(v); };
+    qtyWrap.append(minus,input,plus);
+
+    const add = document.createElement('button'); add.className='btn small add-btn'; add.textContent='Ajouter';
+    add.onclick=()=>{ const n=Math.max(1, Math.min(9, parseInt(input.value)||1)); DB.items.set(p, (DB.items.get(p)||0)+n); renderDeckList(); };
+
+    overlay.append(qtyWrap, add);
+    card.append(img, title, overlay);
+    dbGrid.appendChild(card);
+  }
+  attachHoverZoom(dbGrid);
+}
+
+function renderDeckList(){
+  deckListEl.innerHTML="";
+  let total=0;
+  for(const [path, qty] of DB.items.entries()){
+    total += qty;
+    const row = document.createElement('div'); row.className='deck-row';
+    const name = document.createElement('div'); name.className='name'; name.textContent = `${prettyNameFromFilename(fileBase(path))}`;
+    const badge = document.createElement('div'); badge.className='pill'; badge.textContent = '×'+qty;
+    const minus=document.createElement('button'); minus.className='btn small ghost'; minus.textContent='-';
+    const plus=document.createElement('button'); plus.className='btn small ghost'; plus.textContent='+';
+    const del=document.createElement('button'); del.className='btn small alt'; del.textContent='Retirer';
+
+    minus.onclick=()=>{ const v=(DB.items.get(path)||0)-1; if(v<=0){ DB.items.delete(path);} else { DB.items.set(path,v);} renderDeckList(); };
+    plus.onclick=()=>{ const v=(DB.items.get(path)||0)+1; DB.items.set(path,v); renderDeckList(); };
+    del.onclick =()=>{ DB.items.delete(path); renderDeckList(); };
+
+    row.append(name, badge, minus, plus, del);
+    deckListEl.appendChild(row);
+  }
+  deckCountEl.textContent = total;
+}
+
+function exportDeckTxt(){
+  // répète le nom de fichier (base) autant de fois (compatible avec parseDeckText actuel)
+  const lines=[];
+  for(const [path, qty] of DB.items.entries()){
+    const base = fileBase(path);
+    for(let i=0;i<qty;i++) lines.push(base);
+  }
+  const blob = new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='deck.txt'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+/* =================== Boot =================== */
+async function boot(reset=false){
+  if(reset){ G.players["0"]=null; G.players["1"]=null; G.ether=[[],[]]; G.log=[]; }
+  await loadLocalCardsIndex();
+  if(!G.players["0"]) G.players["0"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
+  if(!G.players["1"]) G.players["1"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
+  G.current="0"; G.turn=1; G._flip=null; G.step="setup";
+  render();
+}
+boot();
+
+</script>
+</body>
+</html>

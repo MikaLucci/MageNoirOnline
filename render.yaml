@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: mage-noir-online
+    env: node
+    plan: free
+    region: frankfurt
+    buildCommand: "npm ci"
+    startCommand: "node server.js"
+    autoDeploy: true
