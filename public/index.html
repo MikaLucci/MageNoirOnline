@@ -297,7 +297,7 @@
       </div>
     </div>
 
-    <!-- PV + Fin du tour (avec Mage Noir toggles) -->
+    <!-- PV + Fin du tour -->
     <div class="life-sep">
       <div class="life-left">
         <span style="opacity:.85">Ennemi</span>
@@ -487,11 +487,7 @@ const net = {
   room: null,
   connect(roomId){
     if(!this.socket){
-this.socket = io({
-  autoConnect: false,
-  transports: ['websocket'],
-  secure: true,
-});
+      this.socket = io({ autoConnect:false });
       this.wire();
     }
     this.room = roomId;
@@ -863,7 +859,7 @@ function cardDivFromImage(src, alt="Carte", tapped=false, count=0){
   return wrap;
 }
 function ensureMeta(obj){ obj.meta = obj.meta || { t:false, c:0 }; return obj; }
-function cardToolsOverlay(obj, locArr){
+function cardToolsOverlay(obj){
   const tools=document.createElement('div'); tools.className='card-tools';
   const tap=document.createElement('button'); tap.className='tool-btn'; tap.textContent='⟳';
   const plus=document.createElement('button'); plus.className='tool-btn'; plus.textContent='+';
@@ -880,15 +876,13 @@ function cardToolsOverlay(obj, locArr){
 }
 function renderPile(container, entries, withTools=false){
   container.innerHTML="";
-  entries.forEach((obj,idx)=>{
+  entries.forEach((obj)=>{
     const entry = typeof obj==='string' ? { id: obj } : obj;
     ensureMeta(entry);
     const def=CARD_INDEX[entry.id]||{id:entry.id,name:entry.id};
     const el=cardDivFromImage(cardImagePath(def), def.name||def.id, entry.meta.t, entry.meta.c);
     onCardWrapper(el, entry.id);
-    if(withTools){
-      el.appendChild(cardToolsOverlay(entry, entries));
-    }
+    if(withTools) el.appendChild(cardToolsOverlay(entry));
     container.appendChild(el);
   });
 }
@@ -915,7 +909,7 @@ function renderOpponentHand(container, count){
   }
 }
 
-/* === FX helpers (déjà présents) === */
+/* === FX helpers === */
 function spawnManaFx(fromEl, toEl, elType){
   if(!fromEl || !toEl) return;
   const orb = document.createElement('img');
@@ -966,7 +960,7 @@ function pileToReserveBurstFx(pileIdx){
   });
 }
 
-/* === Réserve : rendu + clic pour libérer 1 mana (avec FX) === */
+/* === Réserve === */
 function renderReserveBar(el, pool, isMe=false){
   el.innerHTML="";
   for(const e of ELEMENTS){
@@ -997,7 +991,7 @@ function chooseReleaseTarget(){
   return target;
 }
 
-/* Libérer 1 mana depuis la réserve → piles (utilisation) + FX */
+/* Libérer 1 mana depuis la réserve → piles */
 function releaseFromReserve(el, fromNode){
   const me = G.players[G.current];
   if(!me || (me.reserve[el]||0) <= 0) return;
@@ -1106,38 +1100,22 @@ function parseDeckText(txt){
   return {paths, unknown};
 }
 function importPlayerDeck(paths){
-  // On ajoute les cartes manquantes dans l’index
+  // Index des cartes
   paths.forEach(p=>{
-    if(!CARD_INDEX[p]) {
-      CARD_INDEX[p] = { 
-        id:p, 
-        name:prettyNameFromFilename(fileBase(p)), 
-        image:p, 
-        element:getElementFromPath(p) 
-      };
-    }
+    if(!CARD_INDEX[p]) CARD_INDEX[p] = { id:p, name:prettyNameFromFilename(fileBase(p)), image:p, element:getElementFromPath(p) };
   });
-
-  // Initialise les joueurs si besoin
+  // Init joueurs
   G.players["0"]=makePlayer(paths);
-  if(!G.players["1"]) {
-    G.players["1"]={ 
-      life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], 
-      prepared:[], channeled:[], board:[], isMageNoir:false 
-    };
-  }
+  if(!G.players["1"]) G.players["1"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
+  G.current="0"; G.turn=1; G._flip=null; G._relFlip=null; G.step="setup"; G.phase="setup";
 
-  G.current="0"; 
-  G.turn=1; 
-  G._flip=null; 
-  G._relFlip=null; 
-  G.step="setup";
-
-  try {
+  // Rendu sécurisé
+  try{
     render();
     netSync();
     startStartingHand("0");
-  } catch(e) {
+    writeLog("Deck importé. Main initiale distribuée.");
+  }catch(e){
     console.error("Erreur lors du rendu après import deck:", e);
     alert("Deck chargé mais affichage impossible : " + e.message);
   }
@@ -1185,6 +1163,46 @@ function onEnterCard(e){
 function onMoveCard(e){ positionZoom(e); }
 function onLeaveCard(){ zoomPopup.style.display = 'none'; zoomImg.src = ''; }
 attachHoverZoom();
+
+/* =================== RENDER — (manquait, ajoute ici) =================== */
+function render(){
+  const meId = G.current;
+  const oppId = other(G.current);
+  const me  = G.players[meId]  || {life:20,reserve:emptyRes(),hand:[],deck:[],discard:[],prepared:[],channeled:[],board:[],isMageNoir:false};
+  const opp = G.players[oppId] || {life:20,reserve:emptyRes(),hand:[],deck:[],discard:[],prepared:[],channeled:[],board:[],isMageNoir:false};
+
+  // Ether / piles
+  renderEther();
+
+  // Réserves
+  renderReserveBar(document.getElementById('meReserve'),  me.reserve,  true);
+  renderReserveBar(document.getElementById('oppReserve'), opp.reserve, false);
+
+  // Préparés / Canalisés
+  renderPrepared(document.getElementById('mePrepared'),  me.prepared);
+  renderPrepared(document.getElementById('oppPrepared'), opp.prepared);
+  renderPile(document.getElementById('meChanneled'),  me.channeled,  true);
+  renderPile(document.getElementById('oppChanneled'), opp.channeled, false);
+
+  // Mains
+  renderHand(document.getElementById('meHand'), me.hand);
+  const oppHandCount = Array.isArray(opp.hand) ? opp.hand.length : (opp.hand||[]).length;
+  renderOpponentHand(document.getElementById('oppHand'), oppHandCount);
+
+  // Deck / défausse
+  renderDeckDiscard();
+
+  // PV + Mage Noir badges
+  const meLifeEl = document.getElementById('meLife');
+  const oppLifeEl = document.getElementById('oppLife');
+  if(meLifeEl)  meLifeEl.textContent  = me.life;
+  if(oppLifeEl) oppLifeEl.textContent = opp.life;
+  document.getElementById('meMageToggle').classList.toggle('mn-active',  !!me.isMageNoir);
+  document.getElementById('oppMageToggle').classList.toggle('mn-active', !!opp.isMageNoir);
+
+  // Ré-attacher le zoom sur les nouveaux éléments
+  attachHoverZoom();
+}
 
 /* =================== UI Réseau : Créer/Rejoindre =================== */
 function randomCode(){
@@ -1243,8 +1261,7 @@ document.getElementById('dbImportFile').addEventListener('change', async (ev)=>{
     DB.items.clear();
     for(const p of paths){ DB.items.set(p, (DB.items.get(p)||0)+1); }
     renderDeckList();
-  }finally{ ev.target.value="";
-  }
+  }finally{ ev.target.value=""; }
 });
 
 function buildElementChips(){
@@ -1436,10 +1453,7 @@ function renderExchangeUI(){
       if(EX.pay[el] < (me.reserve[el]||0)) { EX.pay[el]++; renderExchangeUI(); }
     };
 
-    row.append(label, minus, val, plus, (()=>{
-      const stock=document.createElement('span'); stock.className='muted'; stock.textContent=`dispo: ${me.reserve[el]||0}`;
-      stock.style.marginLeft='6px'; return stock;
-    })());
+    row.append(label, minus, val, plus, (()=>{ const stock=document.createElement('span'); stock.className='muted'; stock.textContent=`dispo: ${me.reserve[el]||0}`; stock.style.marginLeft='6px'; return stock; })());
     exPayRows.appendChild(row);
     paid += EX.pay[el];
   }
@@ -1457,33 +1471,6 @@ async function boot(reset=false){
   renderPhase();
 }
 boot();
-
-/* =================== Zoom (déjà en place) =================== */
-const zoomPopupEl = document.getElementById('zoomPopup');
-const zoomImgEl   = zoomPopupEl.querySelector('img');
-function positionZoom(e){
-  const pad = 16;
-  const w = zoomPopupEl.offsetWidth || 360;
-  const h = zoomPopupEl.offsetHeight || 504;
-  let x = e.clientX + 20, y = e.clientY + 20;
-  if (x + w + pad > window.innerWidth)  x = window.innerWidth  - w - pad;
-  if (y + h + pad > window.innerHeight) y = window.innerHeight - h - pad;
-  zoomPopupEl.style.left = x + 'px'; zoomPopupEl.style.top  = y + 'px';
-}
-function attachHoverZoom(root=document){
-  const cards = [...root.querySelectorAll('.card-zoomable')];
-  cards.forEach(card=>{
-    card.addEventListener('mouseenter', onEnterCard, {once:false});
-    card.addEventListener('mousemove',  onMoveCard,  {once:false});
-    card.addEventListener('mouseleave', onLeaveCard, {once:false});
-  });
-}
-function onEnterCard(e){
-  const img = e.currentTarget.querySelector('img'); if(!img) return;
-  zoomImgEl.src = img.src; zoomPopupEl.style.display = 'block'; positionZoom(e);
-}
-function onMoveCard(e){ positionZoom(e); }
-function onLeaveCard(){ zoomPopupEl.style.display = 'none'; zoomImgEl.src = ''; }
 </script>
 </body>
 </html>
