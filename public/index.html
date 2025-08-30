@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mage Noir</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unica+One&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
   <script src="/socket.io/socket.io.js"></script>
 
@@ -20,6 +20,7 @@
       --gutter:10px;
       --chip:#1a2036;
       --danger:#b91c1c;
+      --violet:#7c3aed;
     }
     *{box-sizing:border-box}
     body{
@@ -208,6 +209,32 @@
       0%{ box-shadow: 0 0 0 0 rgba(122,162,255,.45), inset 0 0 0 1px rgba(255,255,255,.08); }
       100%{ box-shadow: 0 0 0 14px rgba(122,162,255,0), inset 0 0 0 1px rgba(255,255,255,.08); }
     }
+
+    /* === Phases & journal === */
+    .phase-chip{border-radius:999px; border:1px solid #2b3350; background:#12162a; padding:6px 10px; font-size:12px; cursor:pointer}
+    .phase-chip.active{outline:2px solid #7aa2ff}
+    .phase-wrap{display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:center}
+    #logList{max-height:220px; overflow:auto; font-size:12px; line-height:1.35}
+    .log-item{padding:4px 6px; border-bottom:1px dashed #2b3350}
+    .log-time{opacity:.7; margin-right:6px}
+
+    /* === Mage Noir badge === */
+    .mn-chip{border:1px solid #5b2bbd; background:rgba(124,58,237,.12); color:#e9d5ff; border-radius:10px; padding:4px 8px; font-size:12px; cursor:pointer}
+    .mn-active{box-shadow:0 0 0 2px rgba(124,58,237,.35) inset}
+
+    /* === Marqueurs carte (tap/counters) === */
+    .card-tools{
+      position:absolute; left:6px; top:6px; display:flex; gap:4px; z-index:3;
+    }
+    .tool-btn{
+      border:1px solid #33405f; background:#0f1426; color:#dfe6ff; border-radius:8px;
+      padding:2px 6px; font-size:11px; cursor:pointer; user-select:none;
+    }
+    .counter-badge{
+      position:absolute; right:6px; top:6px; z-index:3;
+      background:rgba(10,12,20,.8); border:1px solid #34405f; padding:2px 6px; border-radius:8px; font-size:12px
+    }
+    .tapped{ transform:rotate(-6deg) translateY(2px); filter:grayscale(.15) brightness(.95); }
   </style>
 </head>
 <body>
@@ -270,7 +297,7 @@
       </div>
     </div>
 
-    <!-- PV + Fin du tour -->
+    <!-- PV + Fin du tour (avec Mage Noir toggles) -->
     <div class="life-sep">
       <div class="life-left">
         <span style="opacity:.85">Ennemi</span>
@@ -278,6 +305,7 @@
           <button class="pv-btn" id="oppLifeMinus">–</button>
           <span id="oppLife" class="pv-badge">20</span>
           <button class="pv-btn" id="oppLifePlus">+</button>
+          <button id="oppMageToggle" class="mn-chip">Mage Noir</button>
         </div>
       </div>
 
@@ -286,6 +314,7 @@
           <button class="pv-btn" id="meLifeMinus">–</button>
           <span id="meLife" class="pv-badge">20</span>
           <button class="pv-btn" id="meLifePlus">+</button>
+          <button id="meMageToggle" class="mn-chip">Mage Noir</button>
         </div>
         <span style="opacity:.85">Moi</span>
         <button class="btn danger" id="endBtn" style="margin-left:14px">Fin du tour</button>
@@ -322,6 +351,21 @@
 
   <!-- Colonne droite -->
   <div class="rightcol">
+    <!-- Phases -->
+    <div class="zone">
+      <h3>Étape du tour</h3>
+      <div class="phase-wrap">
+        <button class="phase-chip" data-phase="draw">Pioche</button>
+        <button class="phase-chip" data-phase="recover">Récupération</button>
+        <button class="phase-chip" data-phase="action">Actions</button>
+        <button class="phase-chip" data-phase="end">Fin</button>
+      </div>
+      <div style="display:flex; gap:6px; justify-content:center; margin-top:8px">
+        <button class="btn small alt" id="phaseNext">Étape suivante</button>
+      </div>
+      <div class="muted" style="text-align:center; margin-top:6px">Certaines actions sont limitées selon l’étape (ex. prendre une pile → Récupération).</div>
+    </div>
+
     <div class="zone">
       <h3>Éther Disponible</h3>
       <div class="ether--vertical">
@@ -355,6 +399,15 @@
       <div class="mana-controls">
         <button class="btn small alt" id="pickerClear">Effacer</button>
         <button class="btn small" id="pickerOk">OK</button>
+      </div>
+    </div>
+
+    <!-- Journal -->
+    <div class="zone">
+      <h3>Journal</h3>
+      <div id="logList"></div>
+      <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:8px">
+        <button id="logClear" class="btn small ghost">Effacer</button>
       </div>
     </div>
   </div>
@@ -487,6 +540,7 @@ function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Ma
 function emptyRes(){const r={}; for(const e of ELEMENTS) r[e]=0; return r; }
 function other(id){return id==="0"?"1":"0";}
 function countElems(arr){const m={}; for(const e of arr){ m[e]=(m[e]||0)+1; } return m; }
+function nowStr(){ const d=new Date(); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
 
 /* =================== Cartes – index local =================== */
 let CARD_INDEX={};
@@ -545,11 +599,27 @@ const G={
   ether:[[],[]],
   _flip:null,      // alternance pour ajout par picker
   _relFlip:null,   // alternance pour libération depuis la réserve (séquence)
-  step:"recover",
+  phase:"setup",   // draw | recover | action | end | setup
+  step:"recover",  // logique existante pour la récup (choosePile, etc.)
   log:[],
   picker:{desired:3, counts:emptyRes()},
   startChoice:{ active:false, pid:null, pileA:[], pileB:[] }
 };
+
+/* =================== Journal =================== */
+function writeLog(msg){
+  const entry = { t: nowStr(), msg };
+  G.log.push(entry);
+  if(G.log.length>200) G.log.splice(0, G.log.length-200);
+  renderLog();
+  netSync();
+}
+function renderLog(){
+  const wrap = document.getElementById('logList');
+  if(!wrap) return;
+  wrap.innerHTML = G.log.map(e=>`<div class="log-item"><span class="log-time">[${e.t}]</span>${e.msg}</div>`).join("");
+}
+document.getElementById('logClear').onclick=()=>{ G.log=[]; renderLog(); netSync(); };
 
 /* =================== Réseau – sync public =================== */
 function buildPublicState(){
@@ -561,12 +631,15 @@ function buildPublicState(){
       prepared: me.prepared,
       channeled: me.channeled,
       board: me.board,
+      isMageNoir: me.isMageNoir,
       discardTop: me.discard.length? me.discard[me.discard.length-1] : null,
       discardCnt: me.discard.length||0,
       deckCnt: me.deck.length||0,
       handCnt: me.hand.length||0
     },
-    ether: G.ether, turn: G.turn, current: G.current
+    ether: G.ether, turn: G.turn, current: G.current,
+    phase: G.phase, step: G.step,
+    log: G.log
   };
 }
 function applyRemoteState(state){
@@ -578,6 +651,7 @@ function applyRemoteState(state){
   opp.prepared = Array.isArray(src.prepared)? src.prepared : opp.prepared;
   opp.channeled = Array.isArray(src.channeled)? src.channeled : opp.channeled;
   opp.board = Array.isArray(src.board)? src.board : opp.board;
+  opp.isMageNoir = !!src.isMageNoir;
   opp.discard = src.discardTop ? [ { id: src.discardTop } ] : [];
   opp.deck = new Array(Number(src.deckCnt||0)).fill(null);
   opp.hand = new Array(Number(src.handCnt||0)).fill(null);
@@ -585,6 +659,9 @@ function applyRemoteState(state){
   if(Array.isArray(state.ether)) G.ether = state.ether;
   if(typeof state.turn==="number") G.turn = state.turn;
   if(state.current==="0" || state.current==="1") G.current = state.current;
+  if(state.phase) G.phase = state.phase;
+  if(state.step)  G.step  = state.step;
+  if(Array.isArray(state.log)) G.log = state.log;
 
   render();
 }
@@ -634,7 +711,9 @@ document.getElementById('pickerOk').onclick=()=>{
   if(total!==G.picker.desired){ alert("Sélectionnez exactement "+G.picker.desired+" Mana."); return; }
   const arr=[]; for(const [el,n] of Object.entries(G.picker.counts)) for(let i=0;i<n;i++) arr.push(el);
   etherAdd(arr);
+  writeLog(`Ajoute ${total} mana(s) à l'Éther.`);
   G.picker.counts=emptyRes();
+  G.phase="recover";
   G.step="choosePile";
   renderPicker();
 };
@@ -647,7 +726,6 @@ function etherAdd(manas){
     G.ether[target].push(el);
     G._flip=1-target;
   }
-  // reset alternances
   G._flip=null;
   G._relFlip=null;
   renderEther(); netSync();
@@ -669,30 +747,47 @@ function renderPicker(){
 }
 document.getElementById("takeP0Btn").onclick=()=>takePile(0);
 document.getElementById("takeP1Btn").onclick=()=>takePile(1);
+function ensurePhase(need){ return G.phase===need; }
 function takePile(i){
-  if(G.step!=="choosePile"){ alert("Ajoutez d’abord 3 Mana."); return; }
+  if(!ensurePhase('recover')){ alert("Tu ne peux prendre une pile qu’à l’étape Récupération."); return; }
+  if(G.step!=="choosePile"){ alert("Ajoute d’abord 3 Mana à l’Éther."); return; }
   const me=G.players[G.current];
   if(G.ether[i].length===0){ alert("Pile vide."); return; }
 
-  // FX burst (avant de vider la pile pour utiliser les <img> existantes)
+  // FX burst
   pileToReserveBurstFx(i);
 
   for(const el of G.ether[i]){ me.reserve[el]=(me.reserve[el]||0)+1; }
+  writeLog(`Prend la Pile ${i+1} (${G.ether[i].length} mana) → Réserve.`);
   G.ether[i]=[];
-  G._relFlip=null; // reset alternance de libération
-  G.step="main"; render(); netSync();
+  G._relFlip=null;
+  G.step="main";
+  G.phase="action";
+  render(); netSync();
 }
 
-/* =================== PV =================== */
+/* =================== PV & Mage Noir =================== */
 function changeLife(pid, delta){
   const p = G.players[pid];
   p.life = Math.max(0, (p.life||0) + delta);
+  writeLog(`${pid===G.current?'Moi':'Ennemi'} ${delta>0?'gagne':'perd'} ${Math.abs(delta)} PV (→ ${p.life}).`);
   render(); netSync();
 }
 document.getElementById('meLifeMinus').onclick = ()=> changeLife(G.current, -1);
 document.getElementById('meLifePlus').onclick  = ()=> changeLife(G.current, +1);
 document.getElementById('oppLifeMinus').onclick = ()=> changeLife(other(G.current), -1);
 document.getElementById('oppLifePlus').onclick  = ()=> changeLife(other(G.current), +1);
+
+document.getElementById('meMageToggle').onclick = ()=>{
+  const me = G.players[G.current]; me.isMageNoir=!me.isMageNoir;
+  writeLog(`Moi : ${me.isMageNoir?'devient':'n’est plus'} Mage Noir.`);
+  render(); netSync();
+};
+document.getElementById('oppMageToggle').onclick = ()=>{
+  const opp = G.players[other(G.current)]; opp.isMageNoir=!opp.isMageNoir;
+  writeLog(`Ennemi : ${opp.isMageNoir?'devient':'n’est plus'} Mage Noir.`);
+  render(); netSync();
+};
 
 /* =================== Drag & Drop =================== */
 let dragCardId = null;
@@ -717,15 +812,19 @@ function attachDrop(el, dest){
     if(!moved && fromPrepIdx!==-1){ me.prepared.splice(fromPrepIdx,1); moved=true; }
     const fromChanIdx = me.channeled.findIndex(o=>o.id===dragCardId);
     if(!moved && fromChanIdx!==-1){ me.channeled.splice(fromChanIdx,1); moved=true; }
+    const fromBoardIdx = me.board.findIndex(o=>o.id===dragCardId);
+    if(!moved && fromBoardIdx!==-1){ me.board.splice(fromBoardIdx,1); moved=true; }
     const fromDiscardIdx = me.discard.lastIndexOf(dragCardId);
     if(!moved && fromDiscardIdx!==-1){ me.discard.splice(fromDiscardIdx,1); moved=true; }
 
     if(!moved){ clearDrag(); return; }
 
-    if(dest === 'prepared'){ me.prepared.push({ id: dragCardId }); }
-    else if(dest === 'channeled'){ me.channeled.push({ id: dragCardId }); }
-    else if(dest === 'hand'){ me.hand.push(dragCardId); }
-    else if(dest === 'discard'){ me.discard.push(dragCardId); }
+    const def=CARD_INDEX[dragCardId]||{id:dragCardId,name:dragCardId};
+
+    if(dest === 'prepared'){ me.prepared.push({ id: dragCardId, meta:{t:false,c:0} }); writeLog(`Pose en Préparé : ${def.name||def.id}`); }
+    else if(dest === 'channeled'){ me.channeled.push({ id: dragCardId, meta:{t:false,c:0} }); writeLog(`Pose en Canalisé : ${def.name||def.id}`); }
+    else if(dest === 'hand'){ me.hand.push(dragCardId); writeLog(`Remet en Main : ${def.name||def.id}`); }
+    else if(dest === 'discard'){ me.discard.push(dragCardId); writeLog(`Défausse : ${def.name||def.id}`); }
 
     clearDrag(); render(); netSync();
   });
@@ -746,28 +845,55 @@ function cardImagePath(def){
   const img=def.image||`${def.id}.jpg`;
   return `assets/cards/${img}`;
 }
-function cardDivFromImage(src, alt="Carte"){
+function cardDivFromImage(src, alt="Carte", tapped=false, count=0){
   const wrap=document.createElement("div");
-  wrap.className="card card-zoomable";
+  wrap.className="card card-zoomable"+(tapped?' tapped':'');
   const img=document.createElement("img");
   img.className="card-img"; img.src=src; img.alt=alt; img.loading="lazy"; img.decoding="async"; img.setAttribute('draggable','false');
+
+  if(count>0){
+    const cb=document.createElement('div'); cb.className='counter-badge'; cb.textContent='×'+count;
+    wrap.appendChild(cb);
+  }
   wrap.appendChild(img);
   return wrap;
 }
-function renderPile(container, entries){
+function ensureMeta(obj){ obj.meta = obj.meta || { t:false, c:0 }; return obj; }
+function cardToolsOverlay(obj, locArr){
+  const tools=document.createElement('div'); tools.className='card-tools';
+  const tap=document.createElement('button'); tap.className='tool-btn'; tap.textContent='⟳';
+  const plus=document.createElement('button'); plus.className='tool-btn'; plus.textContent='+';
+  const minus=document.createElement('button'); minus.className='tool-btn'; minus.textContent='–';
+
+  tap.title='Engager / Dégager'; plus.title='Ajouter un compteur'; minus.title='Retirer un compteur';
+
+  tap.onclick=(ev)=>{ ev.stopPropagation(); obj.meta.t=!obj.meta.t; render(); netSync(); };
+  plus.onclick=(ev)=>{ ev.stopPropagation(); obj.meta.c=(obj.meta.c||0)+1; render(); netSync(); };
+  minus.onclick=(ev)=>{ ev.stopPropagation(); obj.meta.c=Math.max(0,(obj.meta.c||0)-1); render(); netSync(); };
+
+  tools.append(tap, plus, minus);
+  return tools;
+}
+function renderPile(container, entries, withTools=false){
   container.innerHTML="";
-  entries.forEach((obj)=>{ const def=CARD_INDEX[obj.id]||{id:obj.id,name:obj.id};
-    const el=cardDivFromImage(cardImagePath(def), def.name||def.id);
-    onCardWrapper(el, obj.id);
+  entries.forEach((obj,idx)=>{
+    const entry = typeof obj==='string' ? { id: obj } : obj;
+    ensureMeta(entry);
+    const def=CARD_INDEX[entry.id]||{id:entry.id,name:entry.id};
+    const el=cardDivFromImage(cardImagePath(def), def.name||def.id, entry.meta.t, entry.meta.c);
+    onCardWrapper(el, entry.id);
+    if(withTools){
+      el.appendChild(cardToolsOverlay(entry, entries));
+    }
     container.appendChild(el);
   });
 }
-function renderPrepared(container, entries){ renderPile(container, entries); }
+function renderPrepared(container, entries){ renderPile(container, entries, true); }
 function renderHand(container, ids){
   container.innerHTML="";
   ids.forEach(cid=>{
     const def=CARD_INDEX[cid]||{id:cid,name:cid};
-    const card=cardDivFromImage(cardImagePath(def), def.name||def.id);
+    const card=cardDivFromImage(cardImagePath(def), def.name||def.id, false, 0);
     onCardWrapper(card, cid);
     container.appendChild(card);
   });
@@ -785,7 +911,7 @@ function renderOpponentHand(container, count){
   }
 }
 
-/* === FX helpers === */
+/* === FX helpers (déjà présents) === */
 function spawnManaFx(fromEl, toEl, elType){
   if(!fromEl || !toEl) return;
   const orb = document.createElement('img');
@@ -836,7 +962,7 @@ function pileToReserveBurstFx(pileIdx){
   });
 }
 
-/* === Réserve : rendu + clic pour libérer 1 mana dans les piles (avec FX) === */
+/* === Réserve : rendu + clic pour libérer 1 mana (avec FX) === */
 function renderReserveBar(el, pool, isMe=false){
   el.innerHTML="";
   for(const e of ELEMENTS){
@@ -848,7 +974,7 @@ function renderReserveBar(el, pool, isMe=false){
 
     if(isMe){
       item.title = "Cliquer pour libérer 1 mana de type « "+e+" » dans les piles";
-      item.addEventListener('click', ()=> releaseFromReserve(e, item)); // passe le noeud source pour l’FX
+      item.addEventListener('click', ()=> releaseFromReserve(e, item));
     }else{
       item.style.cursor = "default";
       item.title = "Réserve adverse (non cliquable)";
@@ -857,7 +983,7 @@ function renderReserveBar(el, pool, isMe=false){
   }
 }
 
-/* === Sélection de pile pour libération avec alternance stricte === */
+/* === Choix de pile alterné pour libération === */
 function chooseReleaseTarget(){
   if(G._relFlip==null){
     G._relFlip = (G.ether[0].length <= G.ether[1].length) ? 0 : 1;
@@ -867,7 +993,7 @@ function chooseReleaseTarget(){
   return target;
 }
 
-/* Libérer 1 mana depuis la réserve du joueur courant vers les piles (utilisation) + FX */
+/* Libérer 1 mana depuis la réserve → piles (utilisation) + FX */
 function releaseFromReserve(el, fromNode){
   const me = G.players[G.current];
   if(!me || (me.reserve[el]||0) <= 0) return;
@@ -875,13 +1001,11 @@ function releaseFromReserve(el, fromNode){
   const target = chooseReleaseTarget();
   const destOrbs = document.getElementById(target ? 'p1Orbs' : 'p0Orbs');
 
-  // FX vol d'orbe
   if(fromNode && destOrbs) spawnManaFx(fromNode, destOrbs, el);
 
-  // Mise à jour d'état
   me.reserve[el]--;
   G.ether[target].push(el);
-
+  writeLog(`Libère 1 ${el} → Pile ${target+1}`);
   render(); netSync();
 }
 
@@ -906,33 +1030,29 @@ function renderDeckDiscard(){
     oppDiscardSlot.appendChild(img);
   }
 }
-function render() {
-  const me = G.players[G.current], opp = G.players[other(G.current)];
-  document.getElementById("meLife").textContent = me.life;
-  document.getElementById("oppLife").textContent = opp.life;
 
-  renderReserveBar(document.getElementById("meReserve"), me.reserve, true);
-  renderReserveBar(document.getElementById("oppReserve"), opp.reserve, false);
-
-  renderEther();
-  renderPile(document.getElementById("oppBoard"), opp.board);
-  renderPrepared(document.getElementById("mePrepared"), me.prepared);
-  renderPrepared(document.getElementById("oppPrepared"), opp.prepared);
-  renderPile(document.getElementById("meChanneled"), me.channeled);
-  renderPile(document.getElementById("oppChanneled"), opp.channeled);
-  renderHand(document.getElementById("meHand"), me.hand);
-  renderOpponentHand(document.getElementById("oppHand"), opp.hand.length||0);
-  renderDeckDiscard();
-
-  attachHoverZoom();
-  document.getElementById("meDeckSlot").onclick = () => { draw(G.current, 1) };
+/* =================== Phases =================== */
+const phaseOrder = ["draw","recover","action","end"];
+function setPhase(p){ G.phase=p; renderPhase(); netSync(); }
+function nextPhase(){
+  const idx = phaseOrder.indexOf(G.phase);
+  const nxt = phaseOrder[(idx+1)%phaseOrder.length];
+  setPhase(nxt);
 }
-
-/* =================== Tour =================== */
+document.getElementById('phaseNext').onclick = ()=> nextPhase();
+function renderPhase(){
+  document.querySelectorAll('.phase-chip').forEach(b=>{
+    const p=b.getAttribute('data-phase');
+    b.classList.toggle('active', p===G.phase);
+    b.onclick=()=> setPhase(p);
+  });
+}
 function startTurn(){
   const skip=(G.turn===1 && G.current==="0");
-  if(!skip){ if(!draw(G.current,1)){ alert("Deck vide"); return; } }
-  G.step="recover"; G.picker.desired=3; G.picker.counts=emptyRes(); renderPicker(); netSync();
+  setPhase('draw');
+  if(!skip){ if(!draw(G.current,1)){ alert("Deck vide"); writeLog("Pioche impossible (deck vide)."); } else { writeLog("Pioche 1 carte."); } }
+  setPhase('recover');  // on passe en récup; le picker gère les 3 manas → choosePile
+  G.picker.desired=3; G.picker.counts=emptyRes(); renderPicker(); netSync();
 }
 function draw(pid,n){
   const p=G.players[pid];
@@ -940,8 +1060,10 @@ function draw(pid,n){
   render(); netSync(); return true;
 }
 document.getElementById("endBtn").onclick=()=>{
+  setPhase('end');
   const me=G.players[G.current];
   while(me.hand.length>7){ const cid=me.hand.pop(); me.discard.push(cid); }
+  writeLog(`Fin du tour. Main ajustée à ${me.hand.length} carte(s).`);
   G.current=other(G.current); G.turn+=1;
   G._relFlip=null;
   startTurn(); render(); netSync();
@@ -985,9 +1107,10 @@ function importPlayerDeck(paths){
   });
   G.players["0"]=makePlayer(paths);
   if(!G.players["1"]) G.players["1"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
-  G.current="0"; G.turn=1; G._flip=null; G._relFlip=null; G.step="setup";
+  G.current="0"; G.turn=1; G._flip=null; G._relFlip=null; G.step="setup"; G.phase="setup";
   render(); netSync();
   startStartingHand("0");
+  writeLog("Deck importé. Main initiale distribuée.");
 }
 
 /* =================== Main de départ 2x5 =================== */
@@ -1225,6 +1348,7 @@ exConfirm.onclick = ()=>{
   const idx = G.ether[EX.pile].indexOf(EX.takeEl);
   if(idx>-1){ G.ether[EX.pile].splice(idx,1); me.reserve[EX.takeEl]=(me.reserve[EX.takeEl]||0)+1; }
 
+  writeLog(`Échange 2→1 sur Pile ${EX.pile+1}: +1 ${EX.takeEl} en réserve.`);
   exModal.style.display='none';
   render(); netSync();
 };
@@ -1298,11 +1422,38 @@ async function boot(reset=false){
   await loadLocalCardsIndex();
   if(!G.players["0"]) G.players["0"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
   if(!G.players["1"]) G.players["1"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
-  G.current="0"; G.turn=1; G._flip=null; G._relFlip=null; G.step="setup";
+  G.current="0"; G.turn=1; G._flip=null; G._relFlip=null; G.step="setup"; G.phase="setup";
   render();
+  renderPhase();
 }
 boot();
 
+/* =================== Zoom (déjà en place) =================== */
+const zoomPopupEl = document.getElementById('zoomPopup');
+const zoomImgEl   = zoomPopupEl.querySelector('img');
+function positionZoom(e){
+  const pad = 16;
+  const w = zoomPopupEl.offsetWidth || 360;
+  const h = zoomPopupEl.offsetHeight || 504;
+  let x = e.clientX + 20, y = e.clientY + 20;
+  if (x + w + pad > window.innerWidth)  x = window.innerWidth  - w - pad;
+  if (y + h + pad > window.innerHeight) y = window.innerHeight - h - pad;
+  zoomPopupEl.style.left = x + 'px'; zoomPopupEl.style.top  = y + 'px';
+}
+function attachHoverZoom(root=document){
+  const cards = [...root.querySelectorAll('.card-zoomable')];
+  cards.forEach(card=>{
+    card.addEventListener('mouseenter', onEnterCard, {once:false});
+    card.addEventListener('mousemove',  onMoveCard,  {once:false});
+    card.addEventListener('mouseleave', onLeaveCard, {once:false});
+  });
+}
+function onEnterCard(e){
+  const img = e.currentTarget.querySelector('img'); if(!img) return;
+  zoomImgEl.src = img.src; zoomPopupEl.style.display = 'block'; positionZoom(e);
+}
+function onMoveCard(e){ positionZoom(e); }
+function onLeaveCard(){ zoomPopupEl.style.display = 'none'; zoomImgEl.src = ''; }
 </script>
 </body>
 </html>
