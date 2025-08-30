@@ -2,7 +2,13 @@
 import http from 'http';
 import express from 'express';
 import { Server } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
+// ---- Config
 const {
   PORT = process.env.PORT || 3000,
   REDIS_URL = '',
@@ -11,10 +17,23 @@ const {
 } = process.env;
 
 const app = express();
+
+// ---- STATIC: sert index.html et tous les assets depuis la racine du dépôt
+app.use(express.static(__dirname, { extensions: ['html'] }));
+
+// Health
 app.get('/healthz', (_req, res) => res.send('ok'));
-app.use(express.static('.')); // sert index.html et les assets
+
+// SPA fallback (si tu as un router côté client / liens profonds)
+app.get('*', (req, res, next) => {
+  // on ne casse pas les requêtes socket.io
+  if (req.path.startsWith('/socket.io/')) return next();
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 const httpServer = http.createServer(app);
 
+// ---- Socket.IO
 const io = new Server(httpServer, {
   cors: { origin: ALLOW_ORIGIN, methods: ['GET', 'POST'] },
   transports: ['websocket'],
@@ -44,7 +63,6 @@ if (REDIS_URL) {
   const mem = new Map(); // { room -> { state, ts } }
   getState = async (room) => mem.get(room)?.state || null;
   setState = async (room, state) => mem.set(room, { state, ts: Date.now() });
-  // petit GC périodique (facultatif)
   setInterval(() => {
     const now = Date.now();
     for (const [k, v] of mem)
@@ -73,4 +91,6 @@ io.on('connection', (socket) => {
   });
 });
 
-httpServer.listen(PORT, () => console.log('listening on :' + PORT));
+httpServer.listen(PORT, () =>
+  console.log(`[server] listening on :${PORT} | static root = ${__dirname}`)
+);
