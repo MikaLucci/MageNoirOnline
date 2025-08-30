@@ -1065,7 +1065,7 @@ function renderPhase(){
   document.querySelectorAll('.phase-chip').forEach(b=>{
     const p=b.getAttribute('data-phase');
     b.classList.toggle('active', p===G.phase);
-    b.onclick=()=> setPhase(p);
+    b.onclick()=> setPhase(p);
   });
 }
 function startTurn(){
