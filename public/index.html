@@ -70,7 +70,8 @@
     .card-img{width:100%; height:100%; object-fit:cover; display:block; pointer-events:none;}
 
     .reserve-bar{display:flex; gap:8px; justify-content:center; align-items:center; padding:6px; background:rgba(12,14,26,.6); border:1px dashed #2a2d4a; border-radius:10px; flex-wrap:wrap}
-    .res-item{display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid #394467; background:rgba(255,255,255,.04); font-size:12px}
+    .res-item{display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid #394467; background:rgba(255,255,255,.04); font-size:12px; cursor:pointer; transition:transform .08s ease, background .15s ease, border-color .15s ease}
+    .res-item:hover{ transform:translateY(-1px); background:rgba(255,255,255,.07); border-color:#4a5682 }
     .res-item img{width:18px; height:18px; object-fit:contain; display:block}
 
     .life-sep{position:sticky; top:8px; display:flex; align-items:center; gap:18px; margin:8px 0 12px; padding:6px 10px; border:1px dashed var(--border); border-radius:12px; background:rgba(14,16,28,.55); backdrop-filter: blur(4px);}
@@ -536,7 +537,8 @@ const G={
   current:"0",
   turn:1,
   ether:[[],[]],
-  _flip:null,
+  _flip:null,      // alternance pour ajout par picker
+  _relFlip:null,   // alternance pour libération depuis la réserve (égalité)
   step:"recover",
   log:[],
   picker:{desired:3, counts:emptyRes()},
@@ -767,7 +769,9 @@ function renderOpponentHand(container, count){
     container.appendChild(slot);
   }
 }
-function renderReserveBar(el, pool){
+
+/* === Réserve : rendu + clic pour libérer 1 mana dans les piles === */
+function renderReserveBar(el, pool, isMe=false){
   el.innerHTML="";
   for(const e of ELEMENTS){
     const item=document.createElement('div'); item.className='res-item';
@@ -775,9 +779,39 @@ function renderReserveBar(el, pool){
     const name=document.createElement('span'); name.textContent=e;
     const cnt=document.createElement('b'); cnt.textContent=pool[e]||0;
     item.append(img, name, cnt);
+
+    if(isMe){
+      item.title = "Cliquer pour libérer 1 mana de type « "+e+" » dans les piles";
+      item.addEventListener('click', ()=> releaseFromReserve(e));
+    }else{
+      item.style.cursor = "default";
+      item.title = "Réserve adverse (non cliquable)";
+    }
     el.appendChild(item);
   }
 }
+
+/* Choix de pile : moins remplie, sinon alternance mémorisée */
+function choosePileLeastWithAlternate(){
+  const a = G.ether[0].length, b = G.ether[1].length;
+  if(a < b) return 0;
+  if(b < a) return 1;
+  // égalité : alterner avec mémoire _relFlip
+  const t = (G._relFlip==null) ? 0 : G._relFlip;
+  G._relFlip = 1 - t;
+  return t;
+}
+
+/* Libérer 1 mana depuis la réserve du joueur courant vers les piles (utilisation) */
+function releaseFromReserve(el){
+  const me = G.players[G.current];
+  if(!me || (me.reserve[el]||0) <= 0) return; // rien à libérer
+  const target = choosePileLeastWithAlternate();
+  me.reserve[el]--;
+  G.ether[target].push(el);
+  render(); netSync();
+}
+
 function renderDeckDiscard(){
   const me=G.players[G.current], opp=G.players[other(G.current)];
   document.getElementById("meDeckCnt").textContent = me.deck.length;
@@ -803,8 +837,11 @@ function render() {
   const me = G.players[G.current], opp = G.players[other(G.current)];
   document.getElementById("meLife").textContent = me.life;
   document.getElementById("oppLife").textContent = opp.life;
-  renderReserveBar(document.getElementById("meReserve"), me.reserve);
-  renderReserveBar(document.getElementById("oppReserve"), opp.reserve);
+
+  // Réserves : joueur (cliquable) / ennemi (non cliquable)
+  renderReserveBar(document.getElementById("meReserve"), me.reserve, true);
+  renderReserveBar(document.getElementById("oppReserve"), opp.reserve, false);
+
   renderEther();
   renderPile(document.getElementById("oppBoard"), opp.board);
   renderPrepared(document.getElementById("mePrepared"), me.prepared);
@@ -875,7 +912,7 @@ function importPlayerDeck(paths){
   });
   G.players["0"]=makePlayer(paths);
   if(!G.players["1"]) G.players["1"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
-  G.current="0"; G.turn=1; G._flip=null; G.step="setup";
+  G.current="0"; G.turn=1; G._flip=null; G._relFlip=null; G.step="setup";
   render(); netSync();
   startStartingHand("0");
 }
@@ -980,12 +1017,13 @@ document.getElementById('dbImportFile').addEventListener('change', async (ev)=>{
     DB.items.clear();
     for(const p of paths){ DB.items.set(p, (DB.items.get(p)||0)+1); }
     renderDeckList();
-  }finally{ ev.target.value=""; }
+  }finally{ ev.target.value="";
+  }
 });
 
 function buildElementChips(){
   eltChips.innerHTML="";
-  const els = Array.from(LOCAL_CARDS.byElem.keys()).filter(x=>x!=="Inconnu");
+  const els = Array.from(LOCAL_CARDS.byElem.keys()).filter(x=>"Inconnu"!==x);
   const order = ELEMENTS.filter(e=>els.includes(e));
   const chips = ["Tous", ...order, ...els.filter(e=>!order.includes(e))];
 
@@ -1195,7 +1233,7 @@ async function boot(reset=false){
   await loadLocalCardsIndex();
   if(!G.players["0"]) G.players["0"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
   if(!G.players["1"]) G.players["1"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
-  G.current="0"; G.turn=1; G._flip=null; G.step="setup";
+  G.current="0"; G.turn=1; G._flip=null; G._relFlip=null; G.step="setup";
   render();
 }
 boot();
