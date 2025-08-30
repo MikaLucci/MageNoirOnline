@@ -1169,42 +1169,42 @@ attachHoverZoom();
 
 /* =================== RENDER — (manquait, ajoute ici) =================== */
 function render(){
-  const meId = G.current;
-  const oppId = other(G.current);
-  const me  = G.players[meId]  || {life:20,reserve:emptyRes(),hand:[],deck:[],discard:[],prepared:[],channeled:[],board:[],isMageNoir:false};
-  const opp = G.players[oppId] || {life:20,reserve:emptyRes(),hand:[],deck:[],discard:[],prepared:[],channeled:[],board:[],isMageNoir:false};
+  // joueurs
+  const me  = G.players[G.current];
+  const opp = G.players[other(G.current)];
 
-  // Ether / piles
+  // Éther (piles 1 & 2)
   renderEther();
 
   // Réserves
   renderReserveBar(document.getElementById('meReserve'),  me.reserve,  true);
   renderReserveBar(document.getElementById('oppReserve'), opp.reserve, false);
 
-  // Préparés / Canalisés
-  renderPrepared(document.getElementById('mePrepared'),  me.prepared);
-  renderPrepared(document.getElementById('oppPrepared'), opp.prepared);
-  renderPile(document.getElementById('meChanneled'),  me.channeled,  true);
-  renderPile(document.getElementById('oppChanneled'), opp.channeled, false);
-
   // Mains
   renderHand(document.getElementById('meHand'), me.hand);
-  const oppHandCount = Array.isArray(opp.hand) ? opp.hand.length : (opp.hand||[]).length;
-  renderOpponentHand(document.getElementById('oppHand'), oppHandCount);
+  renderOpponentHand(document.getElementById('oppHand'), Array.isArray(opp.hand) ? opp.hand.length : (opp.hand||[]).length);
 
-  // Deck / défausse
+  // Préparés / Canalisés / Plateau
+  renderPrepared(document.getElementById('mePrepared'),  me.prepared);
+  renderPrepared(document.getElementById('meChanneled'), me.channeled);
+  renderPile    (document.getElementById('oppPrepared'),  opp.prepared,   false);
+  renderPile    (document.getElementById('oppChanneled'), opp.channeled,  false);
+  renderPile    (document.getElementById('oppBoard'),     opp.board,      false);
+
+  // Decks / Défausses
   renderDeckDiscard();
 
-  // PV + Mage Noir badges
-  const meLifeEl = document.getElementById('meLife');
-  const oppLifeEl = document.getElementById('oppLife');
-  if(meLifeEl)  meLifeEl.textContent  = me.life;
-  if(oppLifeEl) oppLifeEl.textContent = opp.life;
+  // PV + Mage Noir (badges)
+  document.getElementById('meLife').textContent  = me.life;
+  document.getElementById('oppLife').textContent = opp.life;
   document.getElementById('meMageToggle').classList.toggle('mn-active',  !!me.isMageNoir);
   document.getElementById('oppMageToggle').classList.toggle('mn-active', !!opp.isMageNoir);
 
-  // Ré-attacher le zoom sur les nouveaux éléments
-  attachHoverZoom();
+  // Journal
+  renderLog();
+
+  // Re-attacher le zoom sur les nouveaux éléments
+  attachHoverZoom(document);
 }
 
 /* =================== UI Réseau : Créer/Rejoindre =================== */
