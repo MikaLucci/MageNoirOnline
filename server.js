@@ -8,39 +8,52 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-// ---- Config
+// === CONFIG ===
 const {
   PORT = process.env.PORT || 3000,
   REDIS_URL = '',
   STATE_TTL_SECONDS = 48 * 3600,
   ALLOW_ORIGIN = '*',
+  STATIC_DIR = '' // facultatif: si tu veux cibler un sous-dossier (ex: "public")
 } = process.env;
 
-const app = express();
+// Dossier statique: par défaut le répertoire où se trouvent server.js + index.html
+const STATIC_ROOT = STATIC_DIR
+  ? path.resolve(__dirname, STATIC_DIR)
+  : path.resolve(__dirname);
 
-// ---- STATIC: sert index.html et tous les assets depuis la racine du dépôt
-app.use(express.static(__dirname, { extensions: ['html'] }));
+const INDEX_FILE = path.join(STATIC_ROOT, 'index.html');
+
+const app = express();
+app.disable('x-powered-by');
+
+// Sert les fichiers statiques (index.html, assets…)
+app.use(express.static(STATIC_ROOT, { extensions: ['html'] }));
 
 // Health
 app.get('/healthz', (_req, res) => res.send('ok'));
 
-// SPA fallback (si tu as un router côté client / liens profonds)
+// Fallback SPA (sauf socket.io)
 app.get('*', (req, res, next) => {
-  // on ne casse pas les requêtes socket.io
   if (req.path.startsWith('/socket.io/')) return next();
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(INDEX_FILE, (err) => {
+    if (err) {
+      console.error('[server] index fallback error:', err);
+      res.status(404).send('Not Found');
+    }
+  });
 });
 
 const httpServer = http.createServer(app);
 
-// ---- Socket.IO
+// === SOCKET.IO ===
 const io = new Server(httpServer, {
-  cors: { origin: ALLOW_ORIGIN, methods: ['GET', 'POST'] },
+  cors: { origin: ALLOW_ORIGIN, methods: ['GET','POST'] },
   transports: ['websocket'],
   maxHttpBufferSize: 1e6,
 });
 
-// --- Store d'état: Redis si dispo, sinon mémoire ---
+// Store d'état: Redis si dispo, sinon mémoire
 let getState, setState;
 if (REDIS_URL) {
   const { createClient } = await import('redis');
@@ -60,7 +73,7 @@ if (REDIS_URL) {
   };
   console.log('[server] Redis adapter actif');
 } else {
-  const mem = new Map(); // { room -> { state, ts } }
+  const mem = new Map();
   getState = async (room) => mem.get(room)?.state || null;
   setState = async (room, state) => mem.set(room, { state, ts: Date.now() });
   setInterval(() => {
@@ -71,7 +84,7 @@ if (REDIS_URL) {
   console.log('[server] Fallback mémoire (pas de REDIS_URL)');
 }
 
-// --- Sockets ---
+// Sockets
 io.on('connection', (socket) => {
   socket.on('room:join', async ({ room } = {}) => {
     room = String(room || '').toUpperCase();
@@ -91,6 +104,8 @@ io.on('connection', (socket) => {
   });
 });
 
-httpServer.listen(PORT, () =>
-  console.log(`[server] listening on :${PORT} | static root = ${__dirname}`)
-);
+httpServer.listen(PORT, () => {
+  console.log(`[server] listening on :${PORT}`);
+  console.log(`[server] STATIC_ROOT = ${STATIC_ROOT}`);
+  console.log(`[server] INDEX_FILE  = ${INDEX_FILE}`);
+});
