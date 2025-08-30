@@ -485,38 +485,63 @@
 const net = {
   socket: null,
   room: null,
+  _joined: false,
+
   connect(roomId){
     if(!this.socket){
-this.socket = io(window.location.origin, {
-  autoConnect: false,
-  transports: ["websocket"]
-});
+      this.socket = io({ autoConnect:false });
       this.wire();
     }
     this.room = roomId;
+    this._joined = false;
     try{ this.socket.connect(); }catch{}
   },
+
   wire(){
     const s = this.socket;
-    s.on('connect',   ()=> setNetStatus('Connecté', '#a7f3d0'));
-    s.on('disconnect',()=> setNetStatus('Déconnecté', '#fca5a5'));
-    s.on('connect_error', ()=> setNetStatus('Erreur réseau', '#fca5a5'));
-    s.on('room:joined', (payload)=> {
+
+    const tryJoin = ()=>{
+      if(!net.room || net._joined) return;
+      s.emit('room:join', { room: net.room });
+      // on attend la confirmation "room:joined"
+    };
+
+    s.on('connect',   ()=>{
+      setNetStatus('Connecté', '#a7f3d0');
+      tryJoin();               // ← join dès que la connexion est prête
+    });
+    s.on('reconnect', ()=> tryJoin()); // en cas de reconnexion, on rejoint la salle
+    s.on('disconnect',()=>{
+      setNetStatus('Déconnecté', '#fca5a5');
+      net._joined = false;
+    });
+    s.on('connect_error', (err)=>{
+      setNetStatus('Erreur réseau', '#fca5a5');
+      console.warn('[socket] connect_error:', err?.message || err);
+    });
+
+    s.on('room:joined', (payload)=>{
       if(payload?.room===net.room){
+        net._joined = true;
         setNetStatus(`Salle ${net.room}`, '#93c5fd');
         showShareLink(net.room);
+        // on pousse l’état local au cas où on a déjà fait des actions
+        netSync();
       }
     });
+
     s.on('state:remote', (payload)=>{
       if(!payload || payload.room!==net.room) return;
       applyRemoteState(payload.state||{});
     });
   },
+
   emit(type, data){
-    if(!this.socket || !this.room || this.socket.disconnected) return;
+    if(!this.socket || !this.room || this.socket.disconnected || !this._joined) return;
     this.socket.emit(type, { room:this.room, ...data });
   }
 };
+
 function setNetStatus(text, color='#9fb5ff'){
   const el = document.getElementById('netStatus');
   if(el){ el.textContent = `• ${text}`; el.style.color = color; }
@@ -533,7 +558,6 @@ document.getElementById('copyLinkBtn').addEventListener('click', async ()=>{
   try{ await navigator.clipboard.writeText(url); setNetStatus('Lien copié dans le presse-papiers', '#a7f3d0'); }
   catch{ setNetStatus('Impossible de copier le lien', '#fca5a5'); }
 });
-
 /* =================== Helpers généraux =================== */
 const ELEMENTS = ["Air","Feu","Eau","Végétal","Minéral","Arcane"];
 function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
@@ -1217,13 +1241,15 @@ document.getElementById('createBtn').addEventListener('click', ()=>{
   const id = randomCode();
   document.getElementById('roomId').value = id;
   history.replaceState(null, '', '#'+id);
-  net.connect(id); net.emit('room:join', {}); showShareLink(id);
+  net.connect(id); // le join partira tout seul au 'connect'
+  showShareLink(id);
 });
 document.getElementById('joinBtn').addEventListener('click', ()=>{
   let id = document.getElementById('roomId').value.trim();
   if(!id){ alert("Entre un code de salle (ex: ABC123) ou clique sur « Créer une partie »."); return; }
   history.replaceState(null, '', '#'+id);
-  net.connect(id); net.emit('room:join', {}); showShareLink(id);
+  net.connect(id); // le join partira tout seul au 'connect'
+  showShareLink(id);
 });
 document.getElementById('restartBtn').addEventListener('click', ()=>{
   location.reload();
@@ -1232,7 +1258,8 @@ window.addEventListener('load', ()=>{
   const hash = (location.hash||'').replace('#','').trim();
   if(hash){
     document.getElementById('roomId').value = hash;
-    net.connect(hash); net.emit('room:join', {}); showShareLink(hash);
+    net.connect(hash); // auto-join au 'connect'
+    showShareLink(hash);
   }
 });
 
