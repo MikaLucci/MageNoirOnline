@@ -538,7 +538,7 @@ const G={
   turn:1,
   ether:[[],[]],
   _flip:null,      // alternance pour ajout par picker
-  _relFlip:null,   // alternance pour libération depuis la réserve (égalité)
+  _relFlip:null,   // alternance pour libération depuis la réserve (séquence)
   step:"recover",
   log:[],
   picker:{desired:3, counts:emptyRes()},
@@ -641,7 +641,10 @@ function etherAdd(manas){
     G.ether[target].push(el);
     G._flip=1-target;
   }
-  G._flip=null; renderEther(); netSync();
+  // reset alternances
+  G._flip=null;
+  G._relFlip=null;
+  renderEther(); netSync();
 }
 function renderPicker(){
   const total = Object.values(G.picker.counts).reduce((a,b)=>a+b,0);
@@ -665,7 +668,9 @@ function takePile(i){
   const me=G.players[G.current];
   if(G.ether[i].length===0){ alert("Pile vide."); return; }
   for(const el of G.ether[i]){ me.reserve[el]=(me.reserve[el]||0)+1; }
-  G.ether[i]=[]; G.step="main"; render(); netSync();
+  G.ether[i]=[];
+  G._relFlip=null; // reset alternance de libération
+  G.step="main"; render(); netSync();
 }
 
 /* =================== PV =================== */
@@ -791,22 +796,23 @@ function renderReserveBar(el, pool, isMe=false){
   }
 }
 
-/* Choix de pile : moins remplie, sinon alternance mémorisée */
-function choosePileLeastWithAlternate(){
-  const a = G.ether[0].length, b = G.ether[1].length;
-  if(a < b) return 0;
-  if(b < a) return 1;
-  // égalité : alterner avec mémoire _relFlip
-  const t = (G._relFlip==null) ? 0 : G._relFlip;
-  G._relFlip = 1 - t;
-  return t;
+/* === Nouveau : sélection de pile pour libération avec alternance stricte === */
+function chooseReleaseTarget(){
+  // Premier clic d'une séquence : partir de la pile la moins remplie
+  if(G._relFlip==null){
+    G._relFlip = (G.ether[0].length <= G.ether[1].length) ? 0 : 1;
+  }
+  const target = G._relFlip;
+  // Préparer le prochain clic pour l'autre pile (alternance stricte)
+  G._relFlip = 1 - G._relFlip;
+  return target;
 }
 
 /* Libérer 1 mana depuis la réserve du joueur courant vers les piles (utilisation) */
 function releaseFromReserve(el){
   const me = G.players[G.current];
   if(!me || (me.reserve[el]||0) <= 0) return; // rien à libérer
-  const target = choosePileLeastWithAlternate();
+  const target = chooseReleaseTarget();
   me.reserve[el]--;
   G.ether[target].push(el);
   render(); netSync();
@@ -871,6 +877,8 @@ document.getElementById("endBtn").onclick=()=>{
   const me=G.players[G.current];
   while(me.hand.length>7){ const cid=me.hand.pop(); me.discard.push(cid); }
   G.current=other(G.current); G.turn+=1;
+  // à chaque nouveau tour, on peut raisonnablement repartir d'une « première » libération
+  G._relFlip=null;
   startTurn(); render(); netSync();
 };
 
