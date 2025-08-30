@@ -44,11 +44,18 @@ const httpServer = http.createServer(app);
 
 // === SOCKET.IO ===
 const io = new Server(httpServer, {
-  cors: { origin: ALLOW_ORIGIN, methods: ['GET','POST'] },
-  transports: ['websocket'],
+  // Laisse Socket.IO réutiliser l'origine entrante (pratique avec Render + domaines custom)
+  cors: {
+    origin: (origin, cb) => cb(null, true),
+    methods: ['GET', 'POST'],
+  },
+  // Autorise websocket et fallback en polling (utile si websocket est filtré)
+  transports: ['websocket', 'polling'],
+  // Buffers & timeouts plus tolérants
   maxHttpBufferSize: 1e6,
+  pingInterval: 25000,   // défaut 25000, on garde
+  pingTimeout: 30000,    // défaut 20000 → on augmente un peu
 });
-
 // === STORE ÉTAT (Redis si dispo) ===
 let getState, setState;
 
