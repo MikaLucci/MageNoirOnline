@@ -4,10 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mage Noir</title>
+
+  <!-- Socket.IO client (servi par le serveur Node) -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unica+One&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-  <script src="/socket.io/socket.io.js"></script>
 
   <style>
     :root{
@@ -487,7 +491,6 @@ const net = {
   room: null,
   connect(roomId){
     if(!this.socket){
-      // Force le fallback possible en polling + meilleurs backoffs
       this.socket = io({
         path: '/socket.io',
         transports: ['websocket','polling'],
@@ -495,7 +498,7 @@ const net = {
         reconnectionAttempts: 20,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        timeout: 15000, // délai de connexion initiale
+        timeout: 15000,
         autoConnect: false
       });
       this.wire();
@@ -505,7 +508,12 @@ const net = {
   },
   wire(){
     const s = this.socket;
-    s.on('connect',   ()=> setNetStatus('Connecté', '#a7f3d0'));
+    s.on('connect',   ()=>{
+      setNetStatus('Connecté', '#a7f3d0');
+      // ⬇️ AUTO-JOIN de la salle dès que le socket est connecté
+      net.emit('room:join', {}); // net.emit ajoute automatiquement {room: net.room}
+      showShareLink(net.room);
+    });
     s.on('disconnect',(reason)=> {
       console.warn('[socket] disconnect:', reason);
       setNetStatus('Déconnecté', '#fca5a5');
@@ -554,6 +562,7 @@ document.getElementById('copyLinkBtn').addEventListener('click', async ()=>{
   try{ await navigator.clipboard.writeText(url); setNetStatus('Lien copié dans le presse-papiers', '#a7f3d0'); }
   catch{ setNetStatus('Impossible de copier le lien', '#fca5a5'); }
 });
+
 /* =================== Helpers généraux =================== */
 const ELEMENTS = ["Air","Feu","Eau","Végétal","Minéral","Arcane"];
 function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
@@ -605,7 +614,7 @@ async function loadLocalCardsIndex(){
     }
     LOCAL_CARDS.loaded = true;
   }catch(e){
-    alert("cards.json introuvable ou invalide. Place-le à la racine à côté d’index.html.\n" + e.message);
+    alert("cards.json introuvable ou invalide. Place-le dans /public à côté d’index.html.\n" + e.message);
   }
   return LOCAL_CARDS;
 }
@@ -1065,7 +1074,7 @@ function renderPhase(){
   document.querySelectorAll('.phase-chip').forEach(b=>{
     const p=b.getAttribute('data-phase');
     b.classList.toggle('active', p===G.phase);
-    b.onclick()=> setPhase(p);
+    b.onclick = () => setPhase(p);   // ✅ fix: handler correct
   });
 }
 function startTurn(){
@@ -1187,7 +1196,7 @@ function onMoveCard(e){ positionZoom(e); }
 function onLeaveCard(){ zoomPopup.style.display = 'none'; zoomImg.src = ''; }
 attachHoverZoom();
 
-/* =================== RENDER — (manquait, ajoute ici) =================== */
+/* =================== RENDER =================== */
 function render(){
   // joueurs
   const me  = G.players[G.current];
@@ -1237,14 +1246,14 @@ document.getElementById('createBtn').addEventListener('click', ()=>{
   const id = randomCode();
   document.getElementById('roomId').value = id;
   history.replaceState(null, '', '#'+id);
-  net.connect(id); // le join partira tout seul au 'connect'
+  net.connect(id);
   showShareLink(id);
 });
 document.getElementById('joinBtn').addEventListener('click', ()=>{
   let id = document.getElementById('roomId').value.trim();
   if(!id){ alert("Entre un code de salle (ex: ABC123) ou clique sur « Créer une partie »."); return; }
   history.replaceState(null, '', '#'+id);
-  net.connect(id); // le join partira tout seul au 'connect'
+  net.connect(id);
   showShareLink(id);
 });
 document.getElementById('restartBtn').addEventListener('click', ()=>{
@@ -1254,7 +1263,7 @@ window.addEventListener('load', ()=>{
   const hash = (location.hash||'').replace('#','').trim();
   if(hash){
     document.getElementById('roomId').value = hash;
-    net.connect(hash); // auto-join au 'connect'
+    net.connect(hash);
     showShareLink(hash);
   }
 });
