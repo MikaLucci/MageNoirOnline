@@ -1106,15 +1106,41 @@ function parseDeckText(txt){
   return {paths, unknown};
 }
 function importPlayerDeck(paths){
+  // On ajoute les cartes manquantes dans l’index
   paths.forEach(p=>{
-    if(!CARD_INDEX[p]) CARD_INDEX[p] = { id:p, name:prettyNameFromFilename(fileBase(p)), image:p, element:getElementFromPath(p) };
+    if(!CARD_INDEX[p]) {
+      CARD_INDEX[p] = { 
+        id:p, 
+        name:prettyNameFromFilename(fileBase(p)), 
+        image:p, 
+        element:getElementFromPath(p) 
+      };
+    }
   });
+
+  // Initialise les joueurs si besoin
   G.players["0"]=makePlayer(paths);
-  if(!G.players["1"]) G.players["1"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
-  G.current="0"; G.turn=1; G._flip=null; G._relFlip=null; G.step="setup"; G.phase="setup";
-  render(); netSync();
-  startStartingHand("0");
-  writeLog("Deck importé. Main initiale distribuée.");
+  if(!G.players["1"]) {
+    G.players["1"]={ 
+      life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], 
+      prepared:[], channeled:[], board:[], isMageNoir:false 
+    };
+  }
+
+  G.current="0"; 
+  G.turn=1; 
+  G._flip=null; 
+  G._relFlip=null; 
+  G.step="setup";
+
+  try {
+    render();
+    netSync();
+    startStartingHand("0");
+  } catch(e) {
+    console.error("Erreur lors du rendu après import deck:", e);
+    alert("Deck chargé mais affichage impossible : " + e.message);
+  }
 }
 
 /* =================== Main de départ 2x5 =================== */
