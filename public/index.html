@@ -487,7 +487,11 @@ const net = {
   room: null,
   connect(roomId){
     if(!this.socket){
-      this.socket = io({ autoConnect:false });
+this.socket = io({
+  autoConnect: false,
+  transports: ['websocket'],
+  secure: true,
+});
       this.wire();
     }
     this.room = roomId;
