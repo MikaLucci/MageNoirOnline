@@ -14,7 +14,7 @@ const {
   REDIS_URL = '',
   STATE_TTL_SECONDS = 48 * 3600,
   ALLOW_ORIGIN = '*',
-  STATIC_DIR = '' // facultatif: si tu veux cibler un sous-dossier (ex: "public")
+  STATIC_DIR = 'public' // par défaut "public"
 } = process.env;
 
 // Dossier statique: par défaut le répertoire où se trouvent server.js + index.html
