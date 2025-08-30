@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mage Noir</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unica+One&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
   <script src="/socket.io/socket.io.js"></script>
 
@@ -196,15 +196,25 @@
     .ex-qty .btn.small{padding:4px 8px}
     .ex-footer{display:flex; gap:8px; justify-content:flex-end}
     .muted{color:#9fb5ff; font-size:12px}
+
+    /* === FX Mana === */
+    .fx-orb{
+      position: fixed; width:24px; height:24px; pointer-events:none; z-index:200;
+      will-change: transform, opacity; filter: drop-shadow(0 0 2px rgba(255,255,255,.5));
+      transform: translateZ(0);
+    }
+    .pile-card.hit{ animation: pilePulse .35s ease-out; }
+    @keyframes pilePulse{
+      0%{ box-shadow: 0 0 0 0 rgba(122,162,255,.45), inset 0 0 0 1px rgba(255,255,255,.08); }
+      100%{ box-shadow: 0 0 0 14px rgba(122,162,255,0), inset 0 0 0 1px rgba(255,255,255,.08); }
+    }
   </style>
 </head>
 <body>
 <header>
-  <!-- Bandeau 'Partie' + 'Deck' sur une seule ligne -->
   <div class="rowbar" style="flex-wrap:nowrap">
     <h1>Mage Noir</h1>
 
-    <!-- Groupe Partie -->
     <div class="rowbar" style="gap:6px; flex-wrap:nowrap">
       <button class="btn small alt" id="createBtn" type="button">Créer une partie</button>
       <input id="roomId" class="input" placeholder="Code salle (ex: ABC123)" />
@@ -214,7 +224,6 @@
 
     <span class="spacer"></span>
 
-    <!-- Groupe Deck -->
     <div class="rowbar" style="gap:6px; flex-wrap:nowrap">
       <button class="btn small" id="deckbuilderBtn" type="button">Deckbuilder</button>
       <label class="btn small alt" style="cursor:pointer">
@@ -254,7 +263,6 @@
           </div>
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
             <div id="oppReserve" class="reserve-bar" style="flex:1"></div>
-            <!-- Bouton désactivé côté ennemi (contrôle local) -->
             <button class="btn small ghost" disabled title="Contrôle Joueur uniquement">Échanger Mana</button>
           </div>
           <div id="oppBoard" class="pile"></div>
@@ -262,7 +270,7 @@
       </div>
     </div>
 
-    <!-- PV + Fin du tour (bouton à droite) -->
+    <!-- PV + Fin du tour -->
     <div class="life-sep">
       <div class="life-left">
         <span style="opacity:.85">Ennemi</span>
@@ -395,7 +403,6 @@
     <div class="muted">Choisis la pile (par défaut la plus grande), le mana à récupérer depuis cette pile, puis paie exactement 2 manas de ta réserve. Les 2 manas payés vont dans la pile choisie.</div>
 
     <div class="ex-row" style="margin-top:10px">
-      <!-- Bloc pile -->
       <div class="ex-block">
         <div class="ex-title">Pile ciblée</div>
         <div class="ex-chips" id="exPileChips"></div>
@@ -403,7 +410,6 @@
         <div class="ex-chips" id="exPileElems"></div>
       </div>
 
-      <!-- Bloc paiement -->
       <div class="ex-block">
         <div class="ex-title">Payer 2 manas (réserve joueur)</div>
         <div id="exPayRows"></div>
@@ -667,6 +673,10 @@ function takePile(i){
   if(G.step!=="choosePile"){ alert("Ajoutez d’abord 3 Mana."); return; }
   const me=G.players[G.current];
   if(G.ether[i].length===0){ alert("Pile vide."); return; }
+
+  // FX burst (avant de vider la pile pour utiliser les <img> existantes)
+  pileToReserveBurstFx(i);
+
   for(const el of G.ether[i]){ me.reserve[el]=(me.reserve[el]||0)+1; }
   G.ether[i]=[];
   G._relFlip=null; // reset alternance de libération
@@ -775,7 +785,58 @@ function renderOpponentHand(container, count){
   }
 }
 
-/* === Réserve : rendu + clic pour libérer 1 mana dans les piles === */
+/* === FX helpers === */
+function spawnManaFx(fromEl, toEl, elType){
+  if(!fromEl || !toEl) return;
+  const orb = document.createElement('img');
+  orb.className = 'fx-orb';
+  orb.src = iconUrl[elType] || '';
+  orb.alt = elType;
+
+  const a = fromEl.getBoundingClientRect();
+  const b = toEl.getBoundingClientRect();
+  const startX = a.left + a.width/2, startY = a.top + a.height/2;
+  const endX   = b.left + b.width/2, endY   = b.top + Math.min(32, b.height/2);
+
+  const ctrlX = (startX + endX)/2 + (Math.random()*80 - 40);
+  const ctrlY = Math.min(startY, endY) - 80;
+
+  orb.style.left = (startX - 12) + 'px';
+  orb.style.top  = (startY - 12) + 'px';
+  document.body.appendChild(orb);
+
+  const t0 = performance.now(), dur = 550;
+  function bezier(t){
+    const u = 1 - t;
+    const x = u*u*startX + 2*u*t*ctrlX + t*t*endX;
+    const y = u*u*startY + 2*u*t*ctrlY + t*t*endY;
+    return [x,y];
+  }
+  function step(now){
+    const t = Math.min(1, (now - t0) / dur);
+    const [x,y] = bezier(t);
+    orb.style.transform = `translate(${x - startX}px, ${y - startY}px) scale(${1 + .15*(1-t)})`;
+    orb.style.opacity = String(1 - t*0.05);
+    if(t < 1) requestAnimationFrame(step);
+    else {
+      orb.remove();
+      const card = toEl.closest('.pile-card');
+      if(card){ card.classList.add('hit'); setTimeout(()=>card.classList.remove('hit'), 350); }
+    }
+  }
+  requestAnimationFrame(step);
+}
+function pileToReserveBurstFx(pileIdx){
+  const src = document.getElementById(pileIdx ? 'p1Orbs' : 'p0Orbs');
+  const dst = document.getElementById('meReserve');
+  if(!src || !dst) return;
+  const icons = [...src.querySelectorAll('img')].slice(-12);
+  icons.forEach((img, i)=>{
+    setTimeout(()=>{ spawnManaFx(img, dst, img.alt||'Arcane'); }, i*20);
+  });
+}
+
+/* === Réserve : rendu + clic pour libérer 1 mana dans les piles (avec FX) === */
 function renderReserveBar(el, pool, isMe=false){
   el.innerHTML="";
   for(const e of ELEMENTS){
@@ -787,7 +848,7 @@ function renderReserveBar(el, pool, isMe=false){
 
     if(isMe){
       item.title = "Cliquer pour libérer 1 mana de type « "+e+" » dans les piles";
-      item.addEventListener('click', ()=> releaseFromReserve(e));
+      item.addEventListener('click', ()=> releaseFromReserve(e, item)); // passe le noeud source pour l’FX
     }else{
       item.style.cursor = "default";
       item.title = "Réserve adverse (non cliquable)";
@@ -796,25 +857,31 @@ function renderReserveBar(el, pool, isMe=false){
   }
 }
 
-/* === Nouveau : sélection de pile pour libération avec alternance stricte === */
+/* === Sélection de pile pour libération avec alternance stricte === */
 function chooseReleaseTarget(){
-  // Premier clic d'une séquence : partir de la pile la moins remplie
   if(G._relFlip==null){
     G._relFlip = (G.ether[0].length <= G.ether[1].length) ? 0 : 1;
   }
   const target = G._relFlip;
-  // Préparer le prochain clic pour l'autre pile (alternance stricte)
   G._relFlip = 1 - G._relFlip;
   return target;
 }
 
-/* Libérer 1 mana depuis la réserve du joueur courant vers les piles (utilisation) */
-function releaseFromReserve(el){
+/* Libérer 1 mana depuis la réserve du joueur courant vers les piles (utilisation) + FX */
+function releaseFromReserve(el, fromNode){
   const me = G.players[G.current];
-  if(!me || (me.reserve[el]||0) <= 0) return; // rien à libérer
+  if(!me || (me.reserve[el]||0) <= 0) return;
+
   const target = chooseReleaseTarget();
+  const destOrbs = document.getElementById(target ? 'p1Orbs' : 'p0Orbs');
+
+  // FX vol d'orbe
+  if(fromNode && destOrbs) spawnManaFx(fromNode, destOrbs, el);
+
+  // Mise à jour d'état
   me.reserve[el]--;
   G.ether[target].push(el);
+
   render(); netSync();
 }
 
@@ -844,7 +911,6 @@ function render() {
   document.getElementById("meLife").textContent = me.life;
   document.getElementById("oppLife").textContent = opp.life;
 
-  // Réserves : joueur (cliquable) / ennemi (non cliquable)
   renderReserveBar(document.getElementById("meReserve"), me.reserve, true);
   renderReserveBar(document.getElementById("oppReserve"), opp.reserve, false);
 
@@ -877,7 +943,6 @@ document.getElementById("endBtn").onclick=()=>{
   const me=G.players[G.current];
   while(me.hand.length>7){ const cid=me.hand.pop(); me.discard.push(cid); }
   G.current=other(G.current); G.turn+=1;
-  // à chaque nouveau tour, on peut raisonnablement repartir d'une « première » libération
   G._relFlip=null;
   startTurn(); render(); netSync();
 };
@@ -890,7 +955,7 @@ document.getElementById('deckFile').addEventListener('change', async (ev)=>{
     const txt = await file.text();
     const {paths, unknown} = parseDeckText(txt);
     if(!paths.length){
-      alert("Aucune carte valide trouvée.\nChaque ligne doit contenir un nom de fichier présent dans /cartes/<Élément>/ (ex: imgi_71_Lame-d-air.png).");
+      alert("Aucune carte valide trouvée.\nChaque ligne doit contenir un nom de fichier présent dans /cartes/<Élément>/ (ex: imgi_71_Lame-d’air.png).");
       return;
     }
     if(unknown.length){ console.warn("Lignes ignorées:", unknown); }
@@ -1146,21 +1211,17 @@ exConfirm.onclick = ()=>{
   if(totalPay!==2){ alert("Tu dois payer exactement 2 manas."); return; }
   if(EX.takeEl==null){ alert("Choisis le mana à récupérer depuis la pile."); return; }
 
-  // vérif stocks
   for(const el of ELEMENTS){
     if(EX.pay[el] > (me.reserve[el]||0)) { alert("Réserve insuffisante pour "+el); return; }
   }
-  // vérif pile contient le mana ciblé
   const pile = G.ether[EX.pile];
   if((pile||[]).filter(e=>e===EX.takeEl).length===0){ alert("La pile choisie ne contient pas ce mana."); return; }
 
-  // 1) retirer 2 des réserves → vers pile
   for(const el of ELEMENTS){
     for(let i=0;i<EX.pay[el]; i++){
       me.reserve[el]--; G.ether[EX.pile].push(el);
     }
   }
-  // 2) prendre 1 depuis pile → réserve
   const idx = G.ether[EX.pile].indexOf(EX.takeEl);
   if(idx>-1){ G.ether[EX.pile].splice(idx,1); me.reserve[EX.takeEl]=(me.reserve[EX.takeEl]||0)+1; }
 
@@ -1169,7 +1230,6 @@ exConfirm.onclick = ()=>{
 };
 
 function resetExchange(){
-  // pile la plus grande par défaut
   EX.pile = (G.ether[0].length>=G.ether[1].length)?0:1;
   EX.takeEl = null;
   EX.pay = {Air:0,Feu:0,Eau:0,'Végétal':0,'Minéral':0,Arcane:0};
@@ -1181,7 +1241,6 @@ function openExchange(){
 }
 
 function renderExchangeUI(){
-  // Pile chips
   exPileChips.innerHTML="";
   [0,1].forEach(i=>{
     const btn=document.createElement('button');
@@ -1191,7 +1250,6 @@ function renderExchangeUI(){
     exPileChips.appendChild(btn);
   });
 
-  // Éléments disponibles dans la pile
   exPileElems.innerHTML="";
   const counts = countElems(G.ether[EX.pile]);
   for(const el of ELEMENTS){
@@ -1207,7 +1265,6 @@ function renderExchangeUI(){
     exPileElems.appendChild(span);
   }
 
-  // Paiement
   exPayRows.innerHTML="";
   let paid=0;
   const me = G.players[G.current];
