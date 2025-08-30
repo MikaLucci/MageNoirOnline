@@ -1,63 +1,129 @@
 // server.js
-const path = require("path");
-const express = require("express");
-const http = require("http");
+import http from 'http';
+import express from 'express';
+import { Server } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+
+// === CONFIG ===
+const {
+  PORT = process.env.PORT || 3000,
+  REDIS_URL = '',
+  STATE_TTL_SECONDS = 48 * 3600,
+  ALLOW_ORIGIN = '*',
+  STATIC_DIR = 'public'   // ⬅️ index.html se trouve dans /public
+} = process.env;
+
+const STATIC_ROOT = path.resolve(__dirname, STATIC_DIR);
+const INDEX_FILE  = path.join(STATIC_ROOT, 'index.html');
+
 const app = express();
+app.disable('x-powered-by');
 
-// --- Static (sert index.html et assets)
-app.use(express.static(path.join(__dirname)));
+// Fichiers statiques (public/)
+app.use(express.static(STATIC_ROOT, { extensions: ['html'] }));
 
-// (optionnel) ping health
-app.get("/healthz", (req, res) => res.send("ok"));
+// (optionnel) si tu as encore des assets à la racine, décommente :
+// app.use(express.static(path.resolve(__dirname), { dotfiles: 'ignore' }));
 
-// --- HTTP + WebSocket
-const server = http.createServer(app);
-const { Server } = require("socket.io");
+// Health
+app.get('/healthz', (_req, res) => res.send('ok'));
 
-// Si tu as besoin de CORS (tests en local):
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET","POST"]
-  }
+// Fallback SPA
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/socket.io/')) return next();
+  res.sendFile(INDEX_FILE, (err) => {
+    if (err) {
+      console.error('[server] index fallback error:', err);
+      res.status(404).send('Not Found');
+    }
+  });
 });
 
-// Helpers
-function safeGameId(raw) {
-  return String(raw || "").trim().slice(0, 64);
+const httpServer = http.createServer(app);
+
+// === SOCKET.IO ===
+const io = new Server(httpServer, {
+  cors: {
+    origin: (origin, cb) => cb(null, true),
+    methods: ['GET', 'POST'],
+  },
+  transports: ['websocket', 'polling'],
+  maxHttpBufferSize: 1e6,
+  pingInterval: 25000,
+  pingTimeout: 30000,
+});
+
+// === STORE ÉTAT (Redis si dispo) ===
+let getState, setState;
+
+if (REDIS_URL) {
+  try {
+    const { createClient } = await import('redis');
+    const { createAdapter } = await import('@socket.io/redis-adapter');
+
+    const tlsRequired = REDIS_URL.startsWith('rediss://');
+    const pub = createClient({ url: REDIS_URL, socket: tlsRequired ? { tls: true, rejectUnauthorized: false } : {} });
+    const sub = pub.duplicate();
+
+    await Promise.all([pub.connect(), sub.connect()]);
+    io.adapter(createAdapter(pub, sub));
+
+    const keyState = (room) => `game:${room}:state`;
+    getState = async (room) => {
+      const json = await pub.get(keyState(room));
+      return json ? JSON.parse(json) : null;
+    };
+    setState = async (room, state) => {
+      await pub.set(keyState(room), JSON.stringify(state), { EX: STATE_TTL_SECONDS });
+    };
+
+    console.log('[server] Redis adapter actif');
+  } catch (err) {
+    console.error('[server] Échec connexion Redis. Fallback mémoire.', err);
+    setupMemoryStore();
+  }
+} else {
+  setupMemoryStore();
 }
 
-io.on("connection", (socket) => {
-  // Un client joint une partie (room)
-  socket.on("join", ({ gameId, playerId }) => {
-    const room = safeGameId(gameId);
-    if (!room) return;
-    socket.join(room);
-    // Informe les autres clients qu’un nouveau joueur est là (facultatif)
-    socket.to(room).emit("presence:join", { playerId, at: Date.now() });
+function setupMemoryStore() {
+  const mem = new Map();
+  getState = async (room) => mem.get(room)?.state || null;
+  setState = async (room, state) => mem.set(room, { state, ts: Date.now() });
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of mem)
+      if (now - v.ts > STATE_TTL_SECONDS * 1000) mem.delete(k);
+  }, 60_000);
+  console.log('[server] Fallback mémoire (pas de REDIS_URL)');
+}
+
+// === SOCKETS ===
+io.on('connection', (socket) => {
+  socket.on('room:join', async ({ room } = {}) => {
+    room = String(room || '').toUpperCase();
+    if (!/^[A-Z0-9]{3,10}$/.test(room)) return;
+    await socket.join(room);
+    socket.data.room = room;
+
+    const state = await getState(room);
+    if (state) socket.emit('state:remote', { room, state });
+    io.to(room).emit('room:joined', { room });
   });
 
-  // Un client envoie une action de jeu => on la relaie à toute la room (sauf l’émetteur)
-  socket.on("action", ({ gameId, type, payload }) => {
-    const room = safeGameId(gameId);
-    if (!room || !type) return;
-    // Diffuse à tous les autres du même gameId
-    socket.to(room).emit("action", { type, payload, at: Date.now() });
-  });
-
-  // Optionnel : synchro d’état complet (ex: après reload)
-  socket.on("state:push", ({ gameId, state }) => {
-    const room = safeGameId(gameId);
-    if (!room) return;
-    socket.to(room).emit("state:replace", { state, at: Date.now() });
-  });
-
-  socket.on("disconnect", () => {
-    // rien de spécial ici
+  socket.on('state:update', async ({ room, state } = {}) => {
+    if (!room || socket.data.room !== room) return;
+    await setState(room, state);
+    socket.to(room).emit('state:remote', { room, state });
   });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server listening on :${PORT}`);
+httpServer.listen(PORT, () => {
+  console.log(`[server] listening on :${PORT}`);
+  console.log(`[server] STATIC_ROOT = ${STATIC_ROOT}`);
+  console.log(`[server] INDEX_FILE  = ${INDEX_FILE}`);
 });
