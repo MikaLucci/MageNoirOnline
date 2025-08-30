@@ -1,15 +1,16 @@
 {
-  "name": "mage-noir-server",
-  "type": "module",
+  "name": "mage-noir-online",
+  "version": "1.0.0",
   "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "start": "node server.js",
-    "dev": "NODE_ENV=development node server.js"
+    "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "redis": "^4.6.13",
-    "socket.io": "^4.7.5",
-    "@socket.io/redis-adapter": "^8.2.1"
+    "express": "^4",
+    "socket.io": "^4"
   }
 }
