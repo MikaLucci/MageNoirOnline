@@ -9,30 +9,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 // === CONFIG ===
-const {
-  PORT = process.env.PORT || 3000,
-  REDIS_URL = '',
-  STATE_TTL_SECONDS = 48 * 3600,
-  ALLOW_ORIGIN = '*',
-  STATIC_DIR = 'public'   // ⬅️ index.html se trouve dans /public
-} = process.env;
+const PORT       = process.env.PORT || 3000;
+const STATIC_DIR = process.env.STATIC_DIR || 'public'; // ⬅️ index.html est dans /public
 
 const STATIC_ROOT = path.resolve(__dirname, STATIC_DIR);
 const INDEX_FILE  = path.join(STATIC_ROOT, 'index.html');
 
+// --- App HTTP
 const app = express();
 app.disable('x-powered-by');
 
 // Fichiers statiques (public/)
 app.use(express.static(STATIC_ROOT, { extensions: ['html'] }));
 
-// (optionnel) si tu as encore des assets à la racine, décommente :
-// app.use(express.static(path.resolve(__dirname), { dotfiles: 'ignore' }));
-
-// Health
+// Healthcheck
 app.get('/healthz', (_req, res) => res.send('ok'));
 
-// Fallback SPA
+// Fallback SPA (tout ce qui n'est pas /socket.io/* renvoie index.html)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/socket.io/')) return next();
   res.sendFile(INDEX_FILE, (err) => {
@@ -45,79 +38,39 @@ app.get('*', (req, res, next) => {
 
 const httpServer = http.createServer(app);
 
-// === SOCKET.IO ===
+// --- Socket.IO
 const io = new Server(httpServer, {
-  cors: {
-    origin: (origin, cb) => cb(null, true),
-    methods: ['GET', 'POST'],
-  },
-  transports: ['websocket', 'polling'],
-  maxHttpBufferSize: 1e6,
+  cors: { origin: (origin, cb) => cb(null, true), methods: ['GET','POST'] },
+  transports: ['websocket','polling'],
   pingInterval: 25000,
   pingTimeout: 30000,
 });
 
-// === STORE ÉTAT (Redis si dispo) ===
-let getState, setState;
+// État en mémoire (par "room")
+const mem = new Map(); // key: room -> { state, ts }
+const getState = async (room) => mem.get(room)?.state || null;
+const setState = async (room, state) => mem.set(room, { state, ts: Date.now() });
 
-if (REDIS_URL) {
-  try {
-    const { createClient } = await import('redis');
-    const { createAdapter } = await import('@socket.io/redis-adapter');
-
-    const tlsRequired = REDIS_URL.startsWith('rediss://');
-    const pub = createClient({ url: REDIS_URL, socket: tlsRequired ? { tls: true, rejectUnauthorized: false } : {} });
-    const sub = pub.duplicate();
-
-    await Promise.all([pub.connect(), sub.connect()]);
-    io.adapter(createAdapter(pub, sub));
-
-    const keyState = (room) => `game:${room}:state`;
-    getState = async (room) => {
-      const json = await pub.get(keyState(room));
-      return json ? JSON.parse(json) : null;
-    };
-    setState = async (room, state) => {
-      await pub.set(keyState(room), JSON.stringify(state), { EX: STATE_TTL_SECONDS });
-    };
-
-    console.log('[server] Redis adapter actif');
-  } catch (err) {
-    console.error('[server] Échec connexion Redis. Fallback mémoire.', err);
-    setupMemoryStore();
-  }
-} else {
-  setupMemoryStore();
-}
-
-function setupMemoryStore() {
-  const mem = new Map();
-  getState = async (room) => mem.get(room)?.state || null;
-  setState = async (room, state) => mem.set(room, { state, ts: Date.now() });
-  setInterval(() => {
-    const now = Date.now();
-    for (const [k, v] of mem)
-      if (now - v.ts > STATE_TTL_SECONDS * 1000) mem.delete(k);
-  }, 60_000);
-  console.log('[server] Fallback mémoire (pas de REDIS_URL)');
-}
-
-// === SOCKETS ===
+// Sockets
 io.on('connection', (socket) => {
   socket.on('room:join', async ({ room } = {}) => {
-    room = String(room || '').toUpperCase();
-    if (!/^[A-Z0-9]{3,10}$/.test(room)) return;
+    room = String(room || '').trim().toUpperCase();
+    if (!room) return;
     await socket.join(room);
     socket.data.room = room;
 
+    // renvoie l'état au nouvel arrivant
     const state = await getState(room);
     if (state) socket.emit('state:remote', { room, state });
+
+    // notifie la room
     io.to(room).emit('room:joined', { room });
   });
 
   socket.on('state:update', async ({ room, state } = {}) => {
     if (!room || socket.data.room !== room) return;
     await setState(room, state);
+    // diffuse aux autres clients de la même room
     socket.to(room).emit('state:remote', { room, state });
   });
 });
