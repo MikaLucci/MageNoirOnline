@@ -19,7 +19,7 @@
       --cardW:160px; --cardH:218px;
       --gutter:10px;
       --chip:#1a2036;
-      --danger1:#3a0d12; --danger2:#7a1d24; --dangerBorder:#8b1e28;
+      --danger:#b91c1c;
     }
     *{box-sizing:border-box}
     body{
@@ -30,22 +30,19 @@
       height:100vh; overflow:visible;
     }
 
-    /* ===== Header – une seule ligne ===== */
     header{
-      display:block;
+      display:grid; grid-template-columns: 1fr; gap:6px;
       padding:8px 16px; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
       border-bottom:1px solid var(--border); position:sticky; top:0; z-index:40; backdrop-filter:blur(8px);
     }
-    .rowbar{display:flex; gap:10px; align-items:center; flex-wrap:nowrap; overflow:auto}
-    header h1{font-family:'Unica One'; font-size:20px; margin:0 12px 0 0; letter-spacing:.5px; white-space:nowrap}
-    .group{display:flex; gap:8px; align-items:center; flex-wrap:nowrap}
-    .divider{width:1px; align-self:stretch; background:#33405f; opacity:.6; margin:0 6px}
+    header .rowbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    header h1{font-family:'Unica One'; font-size:20px; margin:0 12px 0 0; letter-spacing:.5px}
     .spacer{flex:1}
-    .btn{background:linear-gradient(180deg,#2c3150,#24293e); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; box-shadow:0 8px 22px rgba(0,0,0,.35); white-space:nowrap}
+    .btn{background:linear-gradient(180deg,#2c3150,#24293e); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; box-shadow:0 8px 22px rgba(0,0,0,.35)}
     .btn.alt{background:linear-gradient(180deg,#263046,#1e2538)}
     .btn.ghost{background:transparent; border:1px solid #33405f}
     .btn.small{padding:6px 10px; font-size:13px; border-radius:9px}
-    .btn.danger{background:linear-gradient(180deg,var(--danger2),var(--danger1)); border-color:var(--dangerBorder)}
+    .btn.danger{background:linear-gradient(180deg,#7f1d1d,#581313); border-color:#7f1d1d}
     .input{background:#0f1426;border:1px solid #2e3656;color:#dfe6ff;border-radius:10px;padding:7px 10px;min-width:150px}
     .chip{background:var(--chip); border:1px solid #2b3350; color:#dfe6ff; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer}
     .chip.active{outline:2px solid #7aa2ff}
@@ -72,31 +69,25 @@
     .card{width:var(--cardW); height:var(--cardH); border-radius:14px; border:1px solid #2a2f52; padding:0; position:relative; overflow:hidden; display:flex; align-items:stretch; justify-content:center}
     .card-img{width:100%; height:100%; object-fit:cover; display:block; pointer-events:none;}
 
-    .reserve-wrap{display:flex; align-items:center; gap:8px}
     .reserve-bar{display:flex; gap:8px; justify-content:center; align-items:center; padding:6px; background:rgba(12,14,26,.6); border:1px dashed #2a2d4a; border-radius:10px; flex-wrap:wrap}
     .res-item{display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid #394467; background:rgba(255,255,255,.04); font-size:12px}
     .res-item img{width:18px; height:18px; object-fit:contain; display:block}
 
-    /* ===== PV & Fin du tour (à droite) ===== */
     .life-sep{position:sticky; top:8px; display:flex; align-items:center; gap:18px; margin:8px 0 12px; padding:6px 10px; border:1px dashed var(--border); border-radius:12px; background:rgba(14,16,28,.55); backdrop-filter: blur(4px);}
-    .life-side{display:flex; align-items:center; gap:8px; font-weight:700; color:#cfd3ff}
+    .life-left,.life-right{display:flex; align-items:center; gap:8px}
+    .life-left{flex:1}
+    .life-right{justify-content:flex-end; flex:1}
     .pv-wrap{display:flex; align-items:center; gap:6px}
     .pv-badge{font-size:14px; padding:4px 10px; border-radius:10px; background:linear-gradient(180deg,#1b1b2a,#141428); border:1px solid #2b2b45; font-weight:800}
     .pv-btn{width:26px;height:26px;border-radius:8px;border:1px solid #33405f;background:#12162a;cursor:pointer}
     .pv-btn:active{transform:scale(.96)}
-    .end-turn{margin-left:auto}
 
-    /* ===== Ether ===== */
     .ether--vertical{display:flex; flex-direction:column; gap:12px}
     .pile-card{border:1px solid var(--border); border-radius:14px; padding:10px; background:rgba(10,12,22,.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,.04)}
     .pile-card button{display:block; margin:8px auto 0;}
     .pile-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
     .bar{height:6px; background:#0f1220; border:1px solid #222647; border-radius:999px; overflow:hidden}
     .bar-inner{height:100%; background:linear-gradient(90deg,#646cff,#22d3ee); width:0%}
-    .orbslist{display:flex; gap:4px; flex-wrap:wrap}
-    .orb{position:relative; border:1px solid #2b3350; border-radius:8px; padding:2px; background:#0b0f1a; cursor:pointer}
-    .orb img{width:24px;height:24px; display:block; filter:drop-shadow(0 0 1px rgba(0,0,0,.6))}
-    .orb.sel{outline:2px solid #7aa2ff}
 
     .mana-panel{display:flex; flex-direction:column; gap:8px; min-height:0}
     .mana-head{display:flex; align-items:center; gap:8px; justify-content:space-between}
@@ -147,7 +138,7 @@
     .share{display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:12px; color:#9fb5ff;}
     .share code{background:#0f1426;border:1px solid #2e3656;color:#dfe6ff;border-radius:8px;padding:4px 6px;}
 
-    /* Modal Deckbuilder */
+    /* Modal générique */
     .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:120; }
     .modal-inner{
       width:min(1200px, 96vw); max-height:92vh; overflow:hidden;
@@ -155,13 +146,15 @@
       background:rgba(16,18,30,.98); border:1px solid #2b3350; border-radius:16px; padding:14px;
       box-shadow:0 24px 80px rgba(0,0,0,.6);
     }
+
+    /* Deckbuilder */
     .db-head{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
     .db-body{display:grid; grid-template-columns: 1fr 320px; gap:12px; min-height:0; flex:1}
     .db-gallery{border:1px dashed #2b3350; border-radius:12px; padding:10px; overflow:auto}
     .db-grid{display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:12px}
     .thumb{
       position:relative; border:1px solid #2b3350; border-radius:12px; background:#0b0f1a;
-      display:flex; flex-direction:column; align-items:center; justify-content:flex-start; 
+      display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
       height:260px; overflow:hidden;
     }
     .thumb img{ width:100%; height:200px; object-fit:contain; display:block; background:#000; }
@@ -184,35 +177,44 @@
     .deck-row .name{flex:1}
     .pill{font-size:11px; padding:2px 6px; border-radius:999px; border:1px solid #2b3350; background:#12162a}
 
-    /* Chips (filtres) */
+    /* Chips (filtres) avec icône */
     .chip{display:flex; align-items:center; gap:6px; background:var(--chip); border:1px solid #2b3350; color:#dfe6ff; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer}
     .chip img{width:18px;height:18px;object-fit:contain}
     .chip.active{outline:2px solid #7aa2ff}
 
-    /* ===== UI d'échange ===== */
-    .ex-ui{display:none; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto}
-    .ex-ui.active{display:flex}
-    .ex-pill{display:flex; align-items:center; gap:6px; padding:4px 8px; border:1px dashed #394467; border-radius:999px; background:rgba(255,255,255,.04); font-size:12px}
-    .ex-actions{display:flex; gap:6px}
+    /* Modal échange mana */
+    #exModal .modal-inner{width:min(700px,96vw)}
+    .ex-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+    .ex-block{border:1px dashed #2b3350; border-radius:12px; padding:10px; flex:1; min-width:280px}
+    .ex-title{font-weight:700; margin-bottom:6px; color:#cfd3ff}
+    .ex-chips{display:flex; gap:8px; flex-wrap:wrap}
+    .ex-chip{display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; border:1px solid #2b3350; background:#12162a; cursor:pointer}
+    .ex-chip img{width:18px;height:18px}
+    .ex-chip.active{outline:2px solid #7aa2ff}
+    .ex-qty{display:flex; gap:6px; align-items:center}
+    .ex-qty .btn.small{padding:4px 8px}
+    .ex-footer{display:flex; gap:8px; justify-content:flex-end}
+    .muted{color:#9fb5ff; font-size:12px}
   </style>
 </head>
 <body>
 <header>
-  <div class="rowbar">
+  <!-- Bandeau 'Partie' + 'Deck' sur une seule ligne -->
+  <div class="rowbar" style="flex-wrap:nowrap">
     <h1>Mage Noir</h1>
 
-    <!-- GROUPE PARTIE -->
-    <div class="group">
+    <!-- Groupe Partie -->
+    <div class="rowbar" style="gap:6px; flex-wrap:nowrap">
       <button class="btn small alt" id="createBtn" type="button">Créer une partie</button>
       <input id="roomId" class="input" placeholder="Code salle (ex: ABC123)" />
       <button class="btn small alt" id="joinBtn" type="button">Rejoindre</button>
-      <button class="btn small ghost" id="restartBtn" type="button">Relancer la partie</button>
+      <button class="btn small ghost" id="restartBtn">Relancer la partie</button>
     </div>
 
-    <div class="divider"></div>
+    <span class="spacer"></span>
 
-    <!-- GROUPE DECKBUILDING -->
-    <div class="group">
+    <!-- Groupe Deck -->
+    <div class="rowbar" style="gap:6px; flex-wrap:nowrap">
       <button class="btn small" id="deckbuilderBtn" type="button">Deckbuilder</button>
       <label class="btn small alt" style="cursor:pointer">
         Importer Deck
@@ -220,11 +222,9 @@
       </label>
     </div>
 
-    <span class="spacer"></span>
-
-    <span id="netStatus" style="font-size:12px;color:#9fb5ff"></span>
+    <span id="netStatus" style="font-size:12px;color:#9fb5ff;margin-left:12px"></span>
     <span class="share" id="shareWrap" style="display:none">
-      • Lien : <code id="shareUrl"></code>
+      • Lien : <code id="shareUrl"></code>
       <button class="btn small ghost" id="copyLinkBtn" type="button">Copier</button>
     </span>
   </div>
@@ -251,22 +251,20 @@
               <div id="oppChanneled" class="pile channeled-wrap"></div>
             </div>
           </div>
-
-          <div class="reserve-wrap">
-            <div id="oppReserve" class="reserve-bar" style="margin-bottom:6px"></div>
-            <button id="oppExchangeBtn" class="btn small ghost" type="button" title="Échanger 2 de votre réserve contre 1 d'une pile">Échanger Mana</button>
-            <div id="oppExUi" class="ex-ui"></div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
+            <div id="oppReserve" class="reserve-bar" style="flex:1"></div>
+            <!-- Bouton désactivé côté ennemi (contrôle local) -->
+            <button class="btn small ghost" disabled title="Contrôle Joueur uniquement">Échanger Mana</button>
           </div>
-
           <div id="oppBoard" class="pile"></div>
         </div>
       </div>
     </div>
 
-    <!-- PV + Fin du tour (droite) -->
+    <!-- PV + Fin du tour (bouton à droite) -->
     <div class="life-sep">
-      <div class="life-side">
-        <span>Ennemi</span>
+      <div class="life-left">
+        <span style="opacity:.85">Ennemi</span>
         <div class="pv-wrap">
           <button class="pv-btn" id="oppLifeMinus">–</button>
           <span id="oppLife" class="pv-badge">20</span>
@@ -274,16 +272,15 @@
         </div>
       </div>
 
-      <div class="life-side" style="margin-left:16px">
+      <div class="life-right">
         <div class="pv-wrap">
           <button class="pv-btn" id="meLifeMinus">–</button>
           <span id="meLife" class="pv-badge">20</span>
           <button class="pv-btn" id="meLifePlus">+</button>
         </div>
-        <span>Moi</span>
+        <span style="opacity:.85">Moi</span>
+        <button class="btn danger" id="endBtn" style="margin-left:14px">Fin du tour</button>
       </div>
-
-      <button class="btn small danger end-turn" id="endBtn" type="button">Fin du tour</button>
     </div>
 
     <!-- JOUEUR -->
@@ -294,13 +291,10 @@
           <div class="slot" id="meDiscardSlot"><span class="label">Défausse</span></div>
         </div>
         <div style="flex:1; display:flex; flex-direction:column; gap:10px">
-
-          <div class="reserve-wrap">
-            <div id="meReserve" class="reserve-bar"></div>
-            <button id="meExchangeBtn" class="btn small ghost" type="button" title="Échanger 2 de votre réserve contre 1 d'une pile">Échanger Mana</button>
-            <div id="meExUi" class="ex-ui"></div>
+          <div style="display:flex; align-items:center; gap:8px">
+            <div id="meReserve" class="reserve-bar" style="flex:1"></div>
+            <button class="btn small ghost" id="exchangeBtn">Échanger Mana</button>
           </div>
-
           <div class="row" style="gap:10px">
             <div class="zone" style="flex:1">
               <h3>Sorts préparés / Permanents</h3>
@@ -325,13 +319,13 @@
         <div class="pile-card">
           <div class="pile-head"><div><b>Pile 1</b></div><div><span id="p0Total">0</span> Mana</div></div>
           <div class="bar"><div class="bar-inner" id="p0Bar"></div></div>
-          <div class="orbslist" id="p0Orbs"></div>
+          <div class="orbslist" id="p0Orbs" style="margin:6px 0 8px; display:flex; gap:4px; flex-wrap:wrap"></div>
           <button class="btn small alt" id="takeP0Btn">Prendre Pile 1</button>
         </div>
         <div class="pile-card">
           <div class="pile-head"><div><b>Pile 2</b></div><div><span id="p1Total">0</span> Mana</div></div>
           <div class="bar"><div class="bar-inner" id="p1Bar"></div></div>
-          <div class="orbslist" id="p1Orbs"></div>
+          <div class="orbslist" id="p1Orbs" style="margin:6px 0 8px; display:flex; gap:4px; flex-wrap:wrap"></div>
           <button class="btn small alt" id="takeP1Btn">Prendre Pile 2</button>
         </div>
       </div>
@@ -389,16 +383,55 @@
   </div>
 </div>
 
+<!-- Modal Échange Mana -->
+<div id="exModal" class="modal" aria-hidden="true">
+  <div class="modal-inner">
+    <div style="display:flex; align-items:center; justify-content:space-between">
+      <h3 style="margin:0">Échanger Mana (2 → 1)</h3>
+      <button class="btn small ghost" id="exClose">Fermer</button>
+    </div>
+
+    <div class="muted">Choisis la pile (par défaut la plus grande), le mana à récupérer depuis cette pile, puis paie exactement 2 manas de ta réserve. Les 2 manas payés vont dans la pile choisie.</div>
+
+    <div class="ex-row" style="margin-top:10px">
+      <!-- Bloc pile -->
+      <div class="ex-block">
+        <div class="ex-title">Pile ciblée</div>
+        <div class="ex-chips" id="exPileChips"></div>
+        <div class="ex-title" style="margin-top:10px">Manas dans la pile</div>
+        <div class="ex-chips" id="exPileElems"></div>
+      </div>
+
+      <!-- Bloc paiement -->
+      <div class="ex-block">
+        <div class="ex-title">Payer 2 manas (réserve joueur)</div>
+        <div id="exPayRows"></div>
+        <div class="muted" id="exPayInfo" style="margin-top:6px"></div>
+      </div>
+    </div>
+
+    <div class="ex-footer" style="margin-top:10px">
+      <button class="btn small alt" id="exReset">Réinitialiser</button>
+      <button class="btn small" id="exConfirm">Confirmer l’échange</button>
+    </div>
+  </div>
+</div>
+
 <!-- Zoom -->
 <div id="zoomPopup" aria-hidden="true"><img alt="aperçu carte"></div>
 
 <script>
 /* =================== Réseau (Socket.IO) =================== */
 const net = {
-  socket: null, room: null,
+  socket: null,
+  room: null,
   connect(roomId){
-    if(!this.socket){ this.socket = io({ autoConnect:false }); this.wire(); }
-    this.room = roomId; try{ this.socket.connect(); }catch{}
+    if(!this.socket){
+      this.socket = io({ autoConnect:false });
+      this.wire();
+    }
+    this.room = roomId;
+    try{ this.socket.connect(); }catch{}
   },
   wire(){
     const s = this.socket;
@@ -406,7 +439,10 @@ const net = {
     s.on('disconnect',()=> setNetStatus('Déconnecté', '#fca5a5'));
     s.on('connect_error', ()=> setNetStatus('Erreur réseau', '#fca5a5'));
     s.on('room:joined', (payload)=> {
-      if(payload?.room===net.room){ setNetStatus(`Salle ${net.room}`, '#93c5fd'); showShareLink(net.room); }
+      if(payload?.room===net.room){
+        setNetStatus(`Salle ${net.room}`, '#93c5fd');
+        showShareLink(net.room);
+      }
     });
     s.on('state:remote', (payload)=>{
       if(!payload || payload.room!==net.room) return;
@@ -426,7 +462,8 @@ function showShareLink(code){
   const wrap = document.getElementById('shareWrap');
   const el = document.getElementById('shareUrl');
   const url = `${location.origin}/#${code}`;
-  el.textContent = url; wrap.style.display = 'inline-flex';
+  el.textContent = url;
+  wrap.style.display = 'inline-flex';
 }
 document.getElementById('copyLinkBtn').addEventListener('click', async ()=>{
   const url = document.getElementById('shareUrl').textContent;
@@ -442,6 +479,7 @@ const isPathId = (id)=> /[\\/]|\\.(png|jpe?g|webp)$/i.test(String(id||""));
 function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function emptyRes(){const r={}; for(const e of ELEMENTS) r[e]=0; return r; }
 function other(id){return id==="0"?"1":"0";}
+function countElems(arr){const m={}; for(const e of arr){ m[e]=(m[e]||0)+1; } return m; }
 
 /* =================== Cartes – index local =================== */
 let CARD_INDEX={};
@@ -468,7 +506,10 @@ async function loadLocalCardsIndex(){
     if(!res.ok) throw new Error("cards.json introuvable");
     const list = await res.json();
     LOCAL_CARDS.list = Array.isArray(list) ? list.map(p=>String(p).replace(/\\/g,'/')) : [];
-    LOCAL_CARDS.byPath.clear(); LOCAL_CARDS.byBase.clear(); LOCAL_CARDS.byElem.clear();
+    LOCAL_CARDS.byPath.clear();
+    LOCAL_CARDS.byBase.clear();
+    LOCAL_CARDS.byElem.clear();
+
     for(const p of LOCAL_CARDS.list){
       const base = fileBase(p).toLowerCase();
       const elem = getElementFromPath(p);
@@ -499,8 +540,7 @@ const G={
   step:"recover",
   log:[],
   picker:{desired:3, counts:emptyRes()},
-  startChoice:{ active:false, pid:null, pileA:[], pileB:[] },
-  exchange:{ active:false, pid:null, pile:null, idx:null, targetEl:null, pay:emptyRes() }
+  startChoice:{ active:false, pid:null, pileA:[], pileB:[] }
 };
 
 /* =================== Réseau – sync public =================== */
@@ -559,12 +599,8 @@ const iconUrl = {
   "Arcane": "https://magenoir.com/img/mage-noir/pictograms/arcane_icon.png"
 };
 function etherSmallest(){ return (G.ether[0].length<=G.ether[1].length)?0:1; }
-function orbsHTML(arr, pileIndex){
-  return arr.map((e,i)=>`
-    <div class="orb ${ (G.exchange.active && G.exchange.pile===pileIndex && G.exchange.idx===i)?'sel':''}"
-         data-pile="${pileIndex}" data-idx="${i}" data-el="${e}" title="${e}">
-      <img src="${iconUrl[e]}" alt="${e}">
-    </div>`).join("");
+function orbsHTML(arr){
+  return arr.map(e => `<img src="${iconUrl[e]}" alt="${e}" title="${e}" style="width:24px;height:24px;object-fit:contain;filter:drop-shadow(0 0 1px ${EL_COL[e]});">`).join("");
 }
 function renderEther(){
   const t0=G.ether[0].length, t1=G.ether[1].length, sum=(t0+t1)||1;
@@ -572,8 +608,8 @@ function renderEther(){
   document.getElementById("p1Total").textContent=t1;
   document.getElementById("p0Bar").style.width=((t0/sum)*100).toFixed(0)+"%";
   document.getElementById("p1Bar").style.width=((t1/sum)*100).toFixed(0)+"%";
-  document.getElementById("p0Orbs").innerHTML=orbsHTML(G.ether[0],0);
-  document.getElementById("p1Orbs").innerHTML=orbsHTML(G.ether[1],1);
+  document.getElementById("p0Orbs").innerHTML=orbsHTML(G.ether[0]);
+  document.getElementById("p1Orbs").innerHTML=orbsHTML(G.ether[1]);
 }
 const manaCards = document.getElementById('manaCards');
 manaCards.addEventListener('click',(e)=>{
@@ -779,9 +815,6 @@ function render() {
   renderOpponentHand(document.getElementById("oppHand"), opp.hand.length||0);
   renderDeckDiscard();
 
-  // UI échange : reset affichage (si la réserve a changé)
-  updateExchangeUI();
-
   attachHoverZoom();
   document.getElementById("meDeckSlot").onclick = () => { draw(G.current, 1) };
 }
@@ -847,7 +880,7 @@ function importPlayerDeck(paths){
   startStartingHand("0");
 }
 
-/* =================== Choix main de départ 2x5 =================== */
+/* =================== Main de départ 2x5 =================== */
 function startStartingHand(pid){
   const p = G.players[pid];
   if(!p || (p.hand && p.hand.length)) return;
@@ -908,7 +941,9 @@ document.getElementById('joinBtn').addEventListener('click', ()=>{
   history.replaceState(null, '', '#'+id);
   net.connect(id); net.emit('room:join', {}); showShareLink(id);
 });
-document.getElementById('restartBtn').addEventListener('click', ()=>{ location.reload(); });
+document.getElementById('restartBtn').addEventListener('click', ()=>{
+  location.reload();
+});
 window.addEventListener('load', ()=>{
   const hash = (location.hash||'').replace('#','').trim();
   if(hash){
@@ -924,7 +959,7 @@ const deckListEl = document.getElementById('deckList');
 const deckCountEl = document.getElementById('deckCount');
 const eltChips = document.getElementById('eltChips');
 
-let DB = { filter:"Tous", items: new Map() }; // key=path, val=qty
+let DB = { filter:"Tous", items: new Map() };
 
 document.getElementById('deckbuilderBtn').onclick = async ()=>{
   await loadLocalCardsIndex();
@@ -958,7 +993,8 @@ function buildElementChips(){
     const b=document.createElement('button');
     b.className='chip'+(DB.filter===e?' active':'');
     if(e!=="Tous"){
-      const img=document.createElement('img'); img.src=iconUrl[e]; img.alt=e;
+      const img=document.createElement('img');
+      img.src=iconUrl[e]; img.alt=e;
       b.appendChild(img);
     }
     b.appendChild(document.createTextNode(e));
@@ -1041,114 +1077,116 @@ function exportDeckTxt(){
   setTimeout(()=>URL.revokeObjectURL(url), 1000);
 }
 
-/* =================== Echange de Mana =================== */
-function largestPileIndex(){
-  const a=G.ether[0].length, b=G.ether[1].length;
-  if(a>b) return 0; if(b>a) return 1; return -1; // égalité => pas d'échange autorisé par la règle
-}
-function beginExchange(pid){
-  // active l'UI pour le joueur pid
-  G.exchange = { active:true, pid, pile:null, idx:null, targetEl:null, pay:emptyRes() };
-  updateExchangeUI();
-  setNetStatus('Sélectionne une Mana dans une des piles', '#93c5fd');
-}
-function cancelExchange(){ G.exchange = { active:false, pid:null, pile:null, idx:null, targetEl:null, pay:emptyRes() }; updateExchangeUI(); renderEther(); }
-function payTotal(){ return Object.values(G.exchange.pay).reduce((a,b)=>a+b,0); }
+/* =================== ÉCHANGE MANA (2:1) =================== */
+const exModal = document.getElementById('exModal');
+const exClose = document.getElementById('exClose');
+const exPileChips = document.getElementById('exPileChips');
+const exPileElems = document.getElementById('exPileElems');
+const exPayRows = document.getElementById('exPayRows');
+const exPayInfo = document.getElementById('exPayInfo');
+const exReset = document.getElementById('exReset');
+const exConfirm = document.getElementById('exConfirm');
 
-function updateExchangeUI(){
-  const ids = [["me","0"],["opp","1"]];
-  ids.forEach(([prefix,pid])=>{
-    const wrap = document.getElementById(prefix+"ExUi");
-    const btn  = document.getElementById(prefix+"ExchangeBtn");
-    if(G.exchange.active && G.exchange.pid===pid){
-      wrap.classList.add('active'); btn.disabled=true;
-      wrap.innerHTML = "";
+let EX = { pile:0, takeEl:null, pay:{Air:0,Feu:0,Eau:0,'Végétal':0,'Minéral':0,Arcane:0} };
 
-      // cible
-      const tgt = document.createElement('div'); tgt.className='ex-pill';
-      tgt.innerHTML = `Cible : <b>${G.exchange.targetEl?G.exchange.targetEl:'—'}</b> (pile ${G.exchange.pile!=null? (Number(G.exchange.pile)+1) : '—'})`;
-      wrap.appendChild(tgt);
+document.getElementById('exchangeBtn').addEventListener('click', ()=>openExchange());
 
-      // choix paiement (2 de la réserve)
-      const payBox = document.createElement('div'); payBox.className='ex-pill';
-      payBox.innerHTML = `<span>Payer&nbsp;<b>${payTotal()}</b>/2</span>`;
-      for(const e of ELEMENTS){
-        const minus = document.createElement('button'); minus.className='btn small ghost'; minus.textContent='–';
-        const label = document.createElement('span'); label.textContent = e+': '+(G.exchange.pay[e]||0);
-        const plus  = document.createElement('button'); plus.className='btn small ghost'; plus.textContent='+';
-        minus.onclick=()=>{ if(G.exchange.pay[e]>0){ G.exchange.pay[e]--; updateExchangeUI(); } };
-        plus.onclick =()=>{ const have = G.players[pid].reserve[e]||0; if(payTotal()<2 && G.exchange.pay[e]<have){ G.exchange.pay[e]++; updateExchangeUI(); } };
-        const cell = document.createElement('span'); cell.style.display='inline-flex'; cell.style.gap='4px'; cell.style.alignItems='center';
-        cell.append(minus,label,plus);
-        payBox.appendChild(cell);
-      }
-      wrap.appendChild(payBox);
+exClose.onclick = ()=> exModal.style.display='none';
+exReset.onclick = ()=>{ resetExchange(); renderExchangeUI(); };
 
-      // actions
-      const actions = document.createElement('div'); actions.className='ex-actions';
-      const cancel = document.createElement('button'); cancel.className='btn small alt'; cancel.textContent='Annuler';
-      const confirm= document.createElement('button'); confirm.className='btn small'; confirm.textContent='Valider échange';
-      confirm.disabled = !(G.exchange.targetEl && payTotal()===2);
-      cancel.onclick = cancelExchange;
-      confirm.onclick= doExchange;
-      actions.append(cancel,confirm);
-      wrap.appendChild(actions);
-    }else{
-      wrap.classList.remove('active'); wrap.innerHTML="";
-      btn.disabled=false;
-    }
-  });
-  // surlignage des orbes
-  renderEther();
-}
+exConfirm.onclick = ()=>{
+  const me = G.players[G.current];
+  const totalPay = Object.values(EX.pay).reduce((a,b)=>a+b,0);
+  if(totalPay!==2){ alert("Tu dois payer exactement 2 manas."); return; }
+  if(EX.takeEl==null){ alert("Choisis le mana à récupérer depuis la pile."); return; }
 
-document.getElementById('meExchangeBtn').onclick = ()=> beginExchange("0");
-document.getElementById('oppExchangeBtn').onclick = ()=> beginExchange("1");
+  // vérif stocks
+  for(const el of ELEMENTS){
+    if(EX.pay[el] > (me.reserve[el]||0)) { alert("Réserve insuffisante pour "+el); return; }
+  }
+  // vérif pile contient le mana ciblé
+  const pile = G.ether[EX.pile];
+  if((pile||[]).filter(e=>e===EX.takeEl).length===0){ alert("La pile choisie ne contient pas ce mana."); return; }
 
-// Clic sur une Mana d'une pile pour la cibler
-function onOrbClick(e){
-  const el = e.target.closest('.orb'); if(!el) return;
-  if(!G.exchange.active) return;
-  const pile = Number(el.dataset.pile);
-  const idx  = Number(el.dataset.idx);
-  const name = String(el.dataset.el);
-  G.exchange.pile = pile;
-  G.exchange.idx  = idx;
-  G.exchange.targetEl = name;
-  updateExchangeUI();
-}
-document.getElementById('p0Orbs').addEventListener('click', onOrbClick);
-document.getElementById('p1Orbs').addEventListener('click', onOrbClick);
-
-function doExchange(){
-  const {active,pid,pile,idx,targetEl,pay} = G.exchange;
-  if(!active || pid==null || pile==null || idx==null || !targetEl) return;
-  // règle : uniquement la pile la plus remplie
-  const lg = largestPileIndex();
-  if(lg===-1 || lg!==pile){ alert("L'échange doit se faire avec la pile la plus remplie."); return; }
-  if(payTotal()!==2){ alert("Il faut payer exactement 2 Mana depuis votre réserve."); return; }
-
-  const P = G.players[pid];
-  // vérifier qu'on peut payer
-  for(const [el,n] of Object.entries(pay)){ if((P.reserve[el]||0) < n){ alert("Réserve insuffisante."); return; } }
-
-  // 1) Retirer la Mana ciblée de la pile -> vers la réserve du joueur
-  const arr = G.ether[pile];
-  const elTaken = arr[idx];
-  if(elTaken!==targetEl){ alert("La cible a changé, réessayez."); return; }
-  arr.splice(idx,1);
-  P.reserve[elTaken] = (P.reserve[elTaken]||0) + 1;
-
-  // 2) Payer 2 Mana de la réserve -> ajoutées DANS LA MÊME PILE
-  for(const [el,n] of Object.entries(pay)){
-    if(n>0){
-      P.reserve[el] -= n;
-      for(let i=0;i<n;i++) arr.push(el);
+  // 1) retirer 2 des réserves → vers pile
+  for(const el of ELEMENTS){
+    for(let i=0;i<EX.pay[el]; i++){
+      me.reserve[el]--; G.ether[EX.pile].push(el);
     }
   }
+  // 2) prendre 1 depuis pile → réserve
+  const idx = G.ether[EX.pile].indexOf(EX.takeEl);
+  if(idx>-1){ G.ether[EX.pile].splice(idx,1); me.reserve[EX.takeEl]=(me.reserve[EX.takeEl]||0)+1; }
 
-  cancelExchange();
+  exModal.style.display='none';
   render(); netSync();
+};
+
+function resetExchange(){
+  // pile la plus grande par défaut
+  EX.pile = (G.ether[0].length>=G.ether[1].length)?0:1;
+  EX.takeEl = null;
+  EX.pay = {Air:0,Feu:0,Eau:0,'Végétal':0,'Minéral':0,Arcane:0};
+}
+function openExchange(){
+  resetExchange();
+  renderExchangeUI();
+  exModal.style.display='flex';
+}
+
+function renderExchangeUI(){
+  // Pile chips
+  exPileChips.innerHTML="";
+  [0,1].forEach(i=>{
+    const btn=document.createElement('button');
+    btn.className='ex-chip'+(EX.pile===i?' active':'');
+    btn.innerHTML = `<img src="${iconUrl.Arcane}" alt=""> Pile ${i+1} <span class="pill" style="margin-left:6px">×${G.ether[i].length}</span>`;
+    btn.onclick=()=>{ EX.pile=i; EX.takeEl=null; renderExchangeUI(); };
+    exPileChips.appendChild(btn);
+  });
+
+  // Éléments disponibles dans la pile
+  exPileElems.innerHTML="";
+  const counts = countElems(G.ether[EX.pile]);
+  for(const el of ELEMENTS){
+    const n = counts[el]||0; if(!n) continue;
+    const c=document.createElement('button');
+    c.className='ex-chip'+(EX.takeEl===el?' active':'');
+    c.innerHTML=`<img src="${iconUrl[el]}" alt="${el}">${el} <span class="pill" style="margin-left:6px">×${n}</span>`;
+    c.onclick=()=>{ EX.takeEl=el; renderExchangeUI(); };
+    exPileElems.appendChild(c);
+  }
+  if(!exPileElems.children.length){
+    const span=document.createElement('span'); span.className='muted'; span.textContent="Pile vide.";
+    exPileElems.appendChild(span);
+  }
+
+  // Paiement
+  exPayRows.innerHTML="";
+  let paid=0;
+  const me = G.players[G.current];
+  for(const el of ELEMENTS){
+    const row=document.createElement('div'); row.className='ex-qty'; row.style.marginBottom='6px';
+    const label=document.createElement('div'); label.innerHTML=`<img src="${iconUrl[el]}" style="width:18px;height:18px;vertical-align:-4px"> ${el}`;
+    const minus=document.createElement('button'); minus.className='btn small ghost'; minus.textContent='–';
+    const val=document.createElement('div'); val.style.minWidth='20px'; val.style.textAlign='center'; val.textContent=EX.pay[el];
+    const plus=document.createElement('button'); plus.className='btn small ghost'; plus.textContent='+';
+
+    minus.onclick=()=>{ if(EX.pay[el]>0){ EX.pay[el]--; renderExchangeUI(); } };
+    plus.onclick=()=>{ 
+      const total = Object.values(EX.pay).reduce((a,b)=>a+b,0);
+      if(total>=2) return;
+      if(EX.pay[el] < (me.reserve[el]||0)) { EX.pay[el]++; renderExchangeUI(); }
+    };
+
+    row.append(label, minus, val, plus, (()=>{
+      const stock=document.createElement('span'); stock.className='muted'; stock.textContent=`dispo: ${me.reserve[el]||0}`;
+      stock.style.marginLeft='6px'; return stock;
+    })());
+    exPayRows.appendChild(row);
+    paid += EX.pay[el];
+  }
+  exPayInfo.textContent = `Sélectionnés : ${paid} / 2`;
 }
 
 /* =================== Boot =================== */
@@ -1161,6 +1199,7 @@ async function boot(reset=false){
   render();
 }
 boot();
+
 </script>
 </body>
 </html>
