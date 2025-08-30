@@ -12,21 +12,24 @@ const __dirname  = path.dirname(__filename);
 const {
   PORT = process.env.PORT || 3000,
   REDIS_URL = '',
-  STATE_TTL_SECONDS = 48 * 3600,       // TTL de l'état (en secondes)
+  STATE_TTL_SECONDS = 48 * 3600,
   ALLOW_ORIGIN = '*',
-  STATIC_DIR = 'public'                 // sert /public par défaut
+  STATIC_DIR = 'public'
 } = process.env;
 
-// Dossier statique
 const STATIC_ROOT = path.resolve(__dirname, STATIC_DIR);
 const INDEX_FILE  = path.join(STATIC_ROOT, 'index.html');
 
 const app = express();
 app.disable('x-powered-by');
 
-// Fichiers statiques + health + fallback SPA (sauf socket.io)
+// Fichiers statiques
 app.use(express.static(STATIC_ROOT, { extensions: ['html'] }));
+
+// Health
 app.get('/healthz', (_req, res) => res.send('ok'));
+
+// Fallback SPA
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/socket.io/')) return next();
   res.sendFile(INDEX_FILE, (err) => {
@@ -46,45 +49,17 @@ const io = new Server(httpServer, {
   maxHttpBufferSize: 1e6,
 });
 
-// --- Store d'état : Redis si URL valide, sinon mémoire ---
+// === STORE ÉTAT (Redis si dispo) ===
 let getState, setState;
 
-function useMemoryStore() {
-  const mem = new Map();
-  getState = async (room) => mem.get(room)?.state || null;
-  setState = async (room, state) => mem.set(room, { state, ts: Date.now() });
-  // Garbage collector des états expirés
-  setInterval(() => {
-    const now = Date.now();
-    for (const [k, v] of mem) {
-      if (now - v.ts > STATE_TTL_SECONDS * 1000) mem.delete(k);
-    }
-  }, 60_000);
-  console.log('[server] Fallback mémoire (pas de Redis ou URL invalide)');
-}
-
-async function tryRedisAdapter(url) {
-  // Vérifie protocole redis:// ou rediss://
-  if (typeof url !== 'string' || !/^redis(s)?:\/\//i.test(url)) {
-    console.warn('[server] REDIS_URL manquante/invalide. Attendu redis:// ou rediss://');
-    return false;
-  }
+if (REDIS_URL) {
   try {
     const { createClient } = await import('redis');
     const { createAdapter } = await import('@socket.io/redis-adapter');
 
-    const isTLS = url.startsWith('rediss://');
-    const u = new URL(url);
-
-    // Client Redis avec TLS explicite si rediss://
-    const pub = createClient({
-      url,
-      socket: isTLS ? {
-        tls: true,
-        servername: u.hostname,      // SNI correct
-        // rejectUnauthorized: false, // à n'activer que si votre provider l'exige
-      } : undefined,
-    });
+    // Support rediss:// (TLS)
+    const tlsRequired = REDIS_URL.startsWith('rediss://');
+    const pub = createClient({ url: REDIS_URL, socket: tlsRequired ? { tls: true, rejectUnauthorized: false } : {} });
     const sub = pub.duplicate();
 
     await Promise.all([pub.connect(), sub.connect()]);
@@ -96,23 +71,31 @@ async function tryRedisAdapter(url) {
       return json ? JSON.parse(json) : null;
     };
     setState = async (room, state) => {
-      await pub.set(keyState(room), JSON.stringify(state), { EX: Number(STATE_TTL_SECONDS) || 0 });
+      await pub.set(keyState(room), JSON.stringify(state), { EX: STATE_TTL_SECONDS });
     };
 
     console.log('[server] Redis adapter actif');
-    return true;
   } catch (err) {
-    console.error('[server] Échec connexion Redis. Fallback mémoire.', err?.message || err);
-    return false;
+    console.error('[server] Échec connexion Redis. Fallback mémoire.', err);
+    setupMemoryStore();
   }
+} else {
+  setupMemoryStore();
 }
 
-// Init du store
-if (!(await tryRedisAdapter(REDIS_URL))) {
-  useMemoryStore();
+function setupMemoryStore() {
+  const mem = new Map();
+  getState = async (room) => mem.get(room)?.state || null;
+  setState = async (room, state) => mem.set(room, { state, ts: Date.now() });
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of mem)
+      if (now - v.ts > STATE_TTL_SECONDS * 1000) mem.delete(k);
+  }, 60_000);
+  console.log('[server] Fallback mémoire (pas de REDIS_URL)');
 }
 
-// --- Sockets ---
+// === SOCKETS ===
 io.on('connection', (socket) => {
   socket.on('room:join', async ({ room } = {}) => {
     room = String(room || '').toUpperCase();
@@ -120,23 +103,15 @@ io.on('connection', (socket) => {
     await socket.join(room);
     socket.data.room = room;
 
-    try {
-      const state = await getState(room);
-      if (state) socket.emit('state:remote', { room, state });
-    } catch (e) {
-      console.error('[server] getState error:', e);
-    }
+    const state = await getState(room);
+    if (state) socket.emit('state:remote', { room, state });
     io.to(room).emit('room:joined', { room });
   });
 
   socket.on('state:update', async ({ room, state } = {}) => {
     if (!room || socket.data.room !== room) return;
-    try {
-      await setState(room, state);
-      socket.to(room).emit('state:remote', { room, state });
-    } catch (e) {
-      console.error('[server] setState error:', e);
-    }
+    await setState(room, state);
+    socket.to(room).emit('state:remote', { room, state });
   });
 });
 
