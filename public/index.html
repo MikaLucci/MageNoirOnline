@@ -4,265 +4,126 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mage Noir</title>
-
-  <!-- Socket.IO client (servi par le serveur Node) -->
   <script src="/socket.io/socket.io.js"></script>
-
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Unica+One&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-
   <style>
     :root{
       color-scheme:dark;
       --air:#60a5fa; --feu:#f87171; --eau:#38bdf8; --vegetal:#34d399; --mineral:#cbd5e1; --arcane:#a78bfa;
-      --panel:rgba(24,26,38,.82);
-      --panel-2:rgba(16,18,30,.82);
-      --border:#262b46;
-      --cardW:160px; --cardH:218px;
-      --gutter:10px;
-      --chip:#1a2036;
-      --danger:#b91c1c;
-      --violet:#7c3aed;
+      --panel:rgba(24,26,38,.82); --panel-2:rgba(16,18,30,.82); --border:#262b46;
+      --cardW:160px; --cardH:218px; --gutter:10px; --chip:#1a2036; --danger:#b91c1c; --violet:#7c3aed;
     }
     *{box-sizing:border-box}
-    body{
-      margin:0;
-      background: radial-gradient(1200px 600px at 50% -10%, #12162a 0%, #0a0c16 60%), #0a0c16;
-      color:#eaf0ff;
-      font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', 'Noto Sans', sans-serif;
-      height:100vh; overflow:visible;
-    }
-
-    header{
-      display:grid; grid-template-columns: 1fr; gap:6px;
-      padding:8px 16px; background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
-      border-bottom:1px solid var(--border); position:sticky; top:0; z-index:40; backdrop-filter:blur(8px);
-    }
-    header .rowbar{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    header h1{font-family:'Unica One'; font-size:20px; margin:0 12px 0 0; letter-spacing:.5px}
+    body{margin:0;background: radial-gradient(1200px 600px at 50% -10%, #12162a 0%, #0a0c16 60%), #0a0c16;color:#eaf0ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue','Noto Sans',sans-serif;height:100vh;overflow:visible}
+    header{display:grid;grid-template-columns:1fr;gap:6px;padding:8px 16px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,0));border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40;backdrop-filter:blur(8px)}
+    header .rowbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    header h1{font-family:'Unica One';font-size:20px;margin:0 12px 0 0;letter-spacing:.5px}
     .spacer{flex:1}
-    .btn{background:linear-gradient(180deg,#2c3150,#24293e); border:1px solid var(--border); color:#fff; padding:8px 12px; border-radius:10px; cursor:pointer; box-shadow:0 8px 22px rgba(0,0,0,.35)}
-    .btn.alt{background:linear-gradient(180deg,#263046,#1e2538)}
-    .btn.ghost{background:transparent; border:1px solid #33405f}
-    .btn.small{padding:6px 10px; font-size:13px; border-radius:9px}
-    .btn.danger{background:linear-gradient(180deg,#7f1d1d,#581313); border-color:#7f1d1d}
+    .btn{background:linear-gradient(180deg,#2c3150,#24293e);border:1px solid var(--border);color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+    .btn.alt{background:linear-gradient(180deg,#263046,#1e2538)} .btn.ghost{background:transparent;border:1px solid #33405f}
+    .btn.small{padding:6px 10px;font-size:13px;border-radius:9px} .btn.danger{background:linear-gradient(180deg,#7f1d1d,#581313);border-color:#7f1d1d}
     .input{background:#0f1426;border:1px solid #2e3656;color:#dfe6ff;border-radius:10px;padding:7px 10px;min-width:150px}
-    .chip{background:var(--chip); border:1px solid #2b3350; color:#dfe6ff; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer}
+    .chip{background:var(--chip);border:1px solid #2b3350;color:#dfe6ff;border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
     .chip.active{outline:2px solid #7aa2ff}
-
-    main{height:calc(100vh - 98px); display:grid; grid-template-columns: 1fr 420px; gap:12px}
-    #board{padding:12px; overflow:auto}
-    .rightcol{padding:10px; display:flex; flex-direction:column; gap:12px; overflow:auto; min-height:0;
-      border-left:1px solid var(--border); background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));}
-
-    .zone{border:1px solid var(--border); border-radius:16px; padding:15px; background:var(--panel);
-      box-shadow:0 8px 24px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);}
-    .zone h3{margin:0 0 8px; font-size:13px; font-weight:700; text-align:center; color:#cfd3ff; letter-spacing:.2px}
-    .row{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-start; align-items:center}
-
-    .slots{display:flex; gap:14px; align-items:center; justify-content:flex-start}
-    .slot{width:var(--cardW); height:var(--cardH); border-radius:14px; border:1px solid var(--border);
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); position:relative; overflow:hidden}
-    .slot .back, .slot .top{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
-    .slot .badge{position:absolute; right:6px; top:6px; background:rgba(10,12,20,.8); border:1px solid #34405f; padding:2px 6px; border-radius:8px; font-size:12px}
-    .slot .label{position:absolute; left:6px; bottom:6px; background:rgba(10,12,20,.7); border:1px solid #34405f; padding:2px 6px; border-radius:8px; font-size:12px}
-
-    .pile{min-height:0; border:1px dashed rgba(255,255,255,.08); border-radius:12px; padding:100px; background:var(--panel-2)}
-    .hand{min-height:var(--cardH); border:1px dashed rgba(255,255,255,.10); border-radius:12px; padding:8px; background:var(--panel-2); display:flex; justify-content:center; align-items:flex-end}
-    .card{width:var(--cardW); height:var(--cardH); border-radius:14px; border:1px solid #2a2f52; padding:0; position:relative; overflow:hidden; display:flex; align-items:stretch; justify-content:center}
-    .card-img{width:100%; height:100%; object-fit:cover; display:block; pointer-events:none;}
-
-    .reserve-bar{display:flex; gap:8px; justify-content:center; align-items:center; padding:6px; background:rgba(12,14,26,.6); border:1px dashed #2a2d4a; border-radius:10px; flex-wrap:wrap}
-    .res-item{display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; border:1px solid #394467; background:rgba(255,255,255,.04); font-size:12px; cursor:pointer; transition:transform .08s ease, background .15s ease, border-color .15s ease}
-    .res-item:hover{ transform:translateY(-1px); background:rgba(255,255,255,.07); border-color:#4a5682 }
-    .res-item img{width:18px; height:18px; object-fit:contain; display:block}
-
-    .life-sep{position:sticky; top:8px; display:flex; align-items:center; gap:18px; margin:8px 0 12px; padding:6px 10px; border:1px dashed var(--border); border-radius:12px; background:rgba(14,16,28,.55); backdrop-filter: blur(4px);}
-    .life-left,.life-right{display:flex; align-items:center; gap:8px}
-    .life-left{flex:1}
-    .life-right{justify-content:flex-end; flex:1}
-    .pv-wrap{display:flex; align-items:center; gap:6px}
-    .pv-badge{font-size:14px; padding:4px 10px; border-radius:10px; background:linear-gradient(180deg,#1b1b2a,#141428); border:1px solid #2b2b45; font-weight:800}
+    main{height:calc(100vh - 98px);display:grid;grid-template-columns:1fr 420px;gap:12px}
+    #board{padding:12px;overflow:auto}
+    .rightcol{padding:10px;display:flex;flex-direction:column;gap:12px;overflow:auto;min-height:0;border-left:1px solid var(--border);background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0))}
+    .zone{border:1px solid var(--border);border-radius:16px;padding:15px;background:var(--panel);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.04)}
+    .zone h3{margin:0 0 8px;font-size:13px;font-weight:700;text-align:center;color:#cfd3ff;letter-spacing:.2px}
+    .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;align-items:center}
+    .slots{display:flex;gap:14px;align-items:center;justify-content:flex-start}
+    .slot{width:var(--cardW);height:var(--cardH);border-radius:14px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));position:relative;overflow:hidden}
+    .slot .back,.slot .top{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .slot .badge{position:absolute;right:6px;top:6px;background:rgba(10,12,20,.8);border:1px solid #34405f;padding:2px 6px;border-radius:8px;font-size:12px}
+    .slot .label{position:absolute;left:6px;bottom:6px;background:rgba(10,12,20,.7);border:1px solid #34405f;padding:2px 6px;border-radius:8px;font-size:12px}
+    .pile{min-height:0;border:1px dashed rgba(255,255,255,.08);border-radius:12px;padding:100px;background:var(--panel-2)}
+    .hand{min-height:var(--cardH);border:1px dashed rgba(255,255,255,.10);border-radius:12px;padding:8px;background:var(--panel-2);display:flex;justify-content:center;align-items:flex-end}
+    .card{width:var(--cardW);height:var(--cardH);border-radius:14px;border:1px solid #2a2f52;padding:0;position:relative;overflow:hidden;display:flex;align-items:stretch;justify-content:center}
+    .card-img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+    .reserve-bar{display:flex;gap:8px;justify-content:center;align-items:center;padding:6px;background:rgba(12,14,26,.6);border:1px dashed #2a2d4a;border-radius:10px;flex-wrap:wrap}
+    .res-item{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #394467;background:rgba(255,255,255,.04);font-size:12px;cursor:pointer;transition:transform .08s ease,background .15s ease,border-color .15s ease}
+    .res-item:hover{transform:translateY(-1px);background:rgba(255,255,255,.07);border-color:#4a5682}
+    .res-item img{width:18px;height:18px;object-fit:contain;display:block}
+    .life-sep{position:sticky;top:8px;display:flex;align-items:center;gap:18px;margin:8px 0 12px;padding:6px 10px;border:1px dashed var(--border);border-radius:12px;background:rgba(14,16,28,.55);backdrop-filter:blur(4px)}
+    .life-left,.life-right{display:flex;align-items:center;gap:8px}
+    .life-left{flex:1}.life-right{justify-content:flex-end;flex:1}
+    .pv-wrap{display:flex;align-items:center;gap:6px}
+    .pv-badge{font-size:14px;padding:4px 10px;border-radius:10px;background:linear-gradient(180deg,#1b1b2a,#141428);border:1px solid #2b2b45;font-weight:800}
     .pv-btn{width:26px;height:26px;border-radius:8px;border:1px solid #33405f;background:#12162a;cursor:pointer}
     .pv-btn:active{transform:scale(.96)}
-
-    .ether--vertical{display:flex; flex-direction:column; gap:12px}
-    .pile-card{border:1px solid var(--border); border-radius:14px; padding:10px; background:rgba(10,12,22,.55); box-shadow: inset 0 0 0 1px rgba(255,255,255,.04)}
-    .pile-card button{display:block; margin:8px auto 0;}
-    .pile-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px}
-    .bar{height:6px; background:#0f1220; border:1px solid #222647; border-radius:999px; overflow:hidden}
-    .bar-inner{height:100%; background:linear-gradient(90deg,#646cff,#22d3ee); width:0%}
-
-    .mana-panel{display:flex; flex-direction:column; gap:8px; min-height:0}
-    .mana-head{display:flex; align-items:center; gap:8px; justify-content:space-between}
-    .mana-scroller{flex:1; display:flex; flex-direction:column; gap:8px; overflow:auto; min-height:0}
-    .mcard{position:relative; height:116px; border-radius:12px; border:1px solid #2b3350; background:#0b0f1a; overflow:hidden; cursor:pointer; display:flex; align-items:center; justify-content:center}
-    .mcard img{height:100%; width:auto; display:block; user-select:none; pointer-events:none; opacity:.95}
+    .ether--vertical{display:flex;flex-direction:column;gap:12px}
+    .pile-card{border:1px solid var(--border);border-radius:14px;padding:10px;background:rgba(10,12,22,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+    .pile-card button{display:block;margin:8px auto 0}
+    .pile-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .bar{height:6px;background:#0f1220;border:1px solid #222647;border-radius:999px;overflow:hidden}
+    .bar-inner{height:100%;background:linear-gradient(90deg,#646cff,#22d3ee);width:0%}
+    .mana-panel{display:flex;flex-direction:column;gap:8px;min-height:0}
+    .mana-head{display:flex;align-items:center;gap:8px;justify-content:space-between}
+    .mana-scroller{flex:1;display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:0}
+    .mcard{position:relative;height:116px;border-radius:12px;border:1px solid #2b3350;background:#0b0f1a;overflow:hidden;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .mcard img{height:100%;width:auto;display:block;user-select:none;pointer-events:none;opacity:.95}
     .mcard:active{transform:scale(.98)}
-    .mana-remaining{font-weight:800}
-    .hint{font-size:12px; color:#9fb5ff}
-    .mana-controls{margin-top:auto; display:flex; justify-content:flex-end; gap:6px}
-
-    .mt-6{margin-top:6px}
-    #oppBoard.pile{padding:0 !important;}
-
-    /* Zoom */
-    #zoomPopup{
-      position: fixed;
-      width: 360px;
-      height: 504px;
-      background:#0c1020;
-      border: 1px solid rgba(255,255,255,.15);
-      border-radius: 12px;
-      box-shadow: 0 18px 50px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.04);
-      display: none;
-      pointer-events: none;
-      z-index: 9999;
-      overflow:hidden;
-    }
-    #zoomPopup img{ width:100%; height:100%; object-fit:contain; display:block; image-rendering:auto; }
-    .card-zoomable{ cursor: default; }
-    body.dragging .card-zoomable{ cursor: grabbing; }
-
-    /* Drop targets */
-    .drop-target{position:relative}
-    .drop-target.is-dragover{ outline:2px dashed #7aa2ff; background: rgba(122,162,255,.08); }
-    .prepared-wrap,
-    .channeled-wrap{
-      padding: 12px 8px 10px !important;
-      height: calc(var(--cardH) + 10px);
-      min-height: calc(var(--cardH) + 10px);
-      max-height: calc(var(--cardH) + 10px);
-      display:flex; align-items:flex-end; gap:8px;
-      overflow-x:auto; overflow-y:hidden;
-    }
-    .prepared-wrap .card, .channeled-wrap .card{ margin:0; }
-
-    /* Partage */
-    .share{display:flex; gap:6px; align-items:center; flex-wrap:wrap; font-size:12px; color:#9fb5ff;}
-    .share code{background:#0f1426;border:1px solid #2e3656;color:#dfe6ff;border-radius:8px;padding:4px 6px;}
-
-    /* Modal générique */
-    .modal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55); z-index:120; }
-    .modal-inner{
-      width:min(1200px, 96vw); max-height:92vh; overflow:hidden;
-      display:flex; flex-direction:column; gap:10px;
-      background:rgba(16,18,30,.98); border:1px solid #2b3350; border-radius:16px; padding:14px;
-      box-shadow:0 24px 80px rgba(0,0,0,.6);
-    }
-
-    /* Deckbuilder */
-    .db-head{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    .db-body{display:grid; grid-template-columns: 1fr 320px; gap:12px; min-height:0; flex:1}
-    .db-gallery{border:1px dashed #2b3350; border-radius:12px; padding:10px; overflow:auto}
-    .db-grid{display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:12px}
-    .thumb{
-      position:relative; border:1px solid #2b3350; border-radius:12px; background:#0b0f1a;
-      display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-      height:260px; overflow:hidden;
-    }
-    .thumb img{ width:100%; height:200px; object-fit:contain; display:block; background:#000; }
-    .thumb .cardname{
-      position:absolute; top:6px; left:6px; right:6px;
-      background:rgba(0,0,0,.55); border:1px solid #33405f; border-radius:8px;
-      padding:2px 6px; font-size:11px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-    .thumb .overlay{
-      margin-top:auto; width:100%; padding:6px;
-      display:flex; align-items:center; gap:6px; justify-content:space-between;
-    }
-    .qty{display:flex; align-items:center; gap:4px}
-    .qty button{width:22px; height:22px; border-radius:6px; border:1px solid #33405f; background:#12162a; cursor:pointer}
-    .qty input{width:36px; text-align:center; border:1px solid #2e3656; background:#0f1426; color:#dfe6ff; border-radius:6px; padding:2px}
+    .mana-remaining{font-weight:800}.hint{font-size:12px;color:#9fb5ff}.mana-controls{margin-top:auto;display:flex;justify-content:flex-end;gap:6px}
+    .mt-6{margin-top:6px}#oppBoard.pile{padding:0 !important;}
+    #zoomPopup{position:fixed;width:360px;height:504px;background:#0c1020;border:1px solid rgba(255,255,255,.15);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.04);display:none;pointer-events:none;z-index:9999;overflow:hidden}
+    #zoomPopup img{width:100%;height:100%;object-fit:contain;display:block;image-rendering:auto}
+    .card-zoomable{cursor:default}body.dragging .card-zoomable{cursor:grabbing}
+    .drop-target{position:relative}.drop-target.is-dragover{outline:2px dashed #7aa2ff;background:rgba(122,162,255,.08)}
+    .prepared-wrap,.channeled-wrap{padding:12px 8px 10px !important;height:calc(var(--cardH) + 10px);min-height:calc(var(--cardH) + 10px);max-height:calc(var(--cardH) + 10px);display:flex;align-items:flex-end;gap:8px;overflow-x:auto;overflow-y:hidden}
+    .prepared-wrap .card,.channeled-wrap .card{margin:0}
+    .share{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:#9fb5ff}
+    .share code{background:#0f1426;border:1px solid #2e3656;color:#dfe6ff;border-radius:8px;padding:4px 6px}
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.55);z-index:120}
+    .modal-inner{width:min(1200px,96vw);max-height:92vh;overflow:hidden;display:flex;flex-direction:column;gap:10px;background:rgba(16,18,30,.98);border:1px solid #2b3350;border-radius:16px;padding:14px;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+    .db-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .db-body{display:grid;grid-template-columns:1fr 320px;gap:12px;min-height:0;flex:1}
+    .db-gallery{border:1px dashed #2b3350;border-radius:12px;padding:10px;overflow:auto}
+    .db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+    .thumb{position:relative;border:1px solid #2b3350;border-radius:12px;background:#0b0f1a;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:260px;overflow:hidden}
+    .thumb img{width:100%;height:200px;object-fit:contain;display:block;background:#000}
+    .thumb .cardname{position:absolute;top:6px;left:6px;right:6px;background:rgba(0,0,0,.55);border:1px solid #33405f;border-radius:8px;padding:2px 6px;font-size:11px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .thumb .overlay{margin-top:auto;width:100%;padding:6px;display:flex;align-items:center;gap:6px;justify-content:space-between}
+    .qty{display:flex;align-items:center;gap:4px}
+    .qty button{width:22px;height:22px;border-radius:6px;border:1px solid #33405f;background:#12162a;cursor:pointer}
+    .qty input{width:36px;text-align:center;border:1px solid #2e3656;background:#0f1426;color:#dfe6ff;border-radius:6px;padding:2px}
     .add-btn{flex:1}
-    .db-side{border:1px dashed #2b3350; border-radius:12px; padding:10px; display:flex; flex-direction:column; min-height:0}
-    .deck-list{flex:1; overflow:auto; display:flex; flex-direction:column; gap:6px}
-    .deck-row{display:flex; align-items:center; gap:8px; background:#0b0f1a; border:1px solid #2b3350; border-radius:10px; padding:6px}
-    .deck-row .name{flex:1}
-    .pill{font-size:11px; padding:2px 6px; border-radius:999px; border:1px solid #2b3350; background:#12162a}
-
-    /* Chips (filtres) avec icône */
-    .chip{display:flex; align-items:center; gap:6px; background:var(--chip); border:1px solid #2b3350; color:#dfe6ff; border-radius:999px; padding:6px 10px; font-size:12px; cursor:pointer}
-    .chip img{width:18px;height:18px;object-fit:contain}
-    .chip.active{outline:2px solid #7aa2ff}
-
-    /* Modal échange mana */
-    #exModal .modal-inner{width:min(700px,96vw)}
-    .ex-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-    .ex-block{border:1px dashed #2b3350; border-radius:12px; padding:10px; flex:1; min-width:280px}
-    .ex-title{font-weight:700; margin-bottom:6px; color:#cfd3ff}
-    .ex-chips{display:flex; gap:8px; flex-wrap:wrap}
-    .ex-chip{display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; border:1px solid #2b3350; background:#12162a; cursor:pointer}
-    .ex-chip img{width:18px;height:18px}
-    .ex-chip.active{outline:2px solid #7aa2ff}
-    .ex-qty{display:flex; gap:6px; align-items:center}
-    .ex-qty .btn.small{padding:4px 8px}
-    .ex-footer{display:flex; gap:8px; justify-content:flex-end}
-    .muted{color:#9fb5ff; font-size:12px}
-
-    /* === FX Mana === */
-    .fx-orb{
-      position: fixed; width:24px; height:24px; pointer-events:none; z-index:200;
-      will-change: transform, opacity; filter: drop-shadow(0 0 2px rgba(255,255,255,.5));
-      transform: translateZ(0);
-    }
-    .pile-card.hit{ animation: pilePulse .35s ease-out; }
-    @keyframes pilePulse{
-      0%{ box-shadow: 0 0 0 0 rgba(122,162,255,.45), inset 0 0 0 1px rgba(255,255,255,.08); }
-      100%{ box-shadow: 0 0 0 14px rgba(122,162,255,0), inset 0 0 0 1px rgba(255,255,255,.08); }
-    }
-
-    /* === Phases & journal === */
-    .phase-chip{border-radius:999px; border:1px solid #2b3350; background:#12162a; padding:6px 10px; font-size:12px; cursor:pointer}
-    .phase-chip.active{outline:2px solid #7aa2ff}
-    .phase-wrap{display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:center}
-    #logList{max-height:220px; overflow:auto; font-size:12px; line-height:1.35}
-    .log-item{padding:4px 6px; border-bottom:1px dashed #2b3350}
-    .log-time{opacity:.7; margin-right:6px}
-
-    /* === Mage Noir badge === */
-    .mn-chip{border:1px solid #5b2bbd; background:rgba(124,58,237,.12); color:#e9d5ff; border-radius:10px; padding:4px 8px; font-size:12px; cursor:pointer}
-    .mn-active{box-shadow:0 0 0 2px rgba(124,58,237,.35) inset}
-
-    /* === Marqueurs carte (tap/counters) === */
-    .card-tools{
-      position:absolute; left:6px; top:6px; display:flex; gap:4px; z-index:3;
-    }
-    .tool-btn{
-      border:1px solid #33405f; background:#0f1426; color:#dfe6ff; border-radius:8px;
-      padding:2px 6px; font-size:11px; cursor:pointer; user-select:none;
-    }
-    .counter-badge{
-      position:absolute; right:6px; top:6px; z-index:3;
-      background:rgba(10,12,20,.8); border:1px solid #34405f; padding:2px 6px; border-radius:8px; font-size:12px
-    }
-    .tapped{ transform:rotate(-6deg) translateY(2px); filter:grayscale(.15) brightness(.95); }
+    .db-side{border:1px dashed #2b3350;border-radius:12px;padding:10px;display:flex;flex-direction:column;min-height:0}
+    .deck-list{flex:1;overflow:auto;display:flex;flex-direction:column;gap:6px}
+    .deck-row{display:flex;align-items:center;gap:8px;background:#0b0f1a;border:1px solid #2b3350;border-radius:10px;padding:6px}
+    .deck-row .name{flex:1}.pill{font-size:11px;padding:2px 6px;border-radius:999px;border:1px solid #2b3350;background:#12162a}
+    .phase-chip{border-radius:999px;border:1px solid #2b3350;background:#12162a;padding:6px 10px;font-size:12px;cursor:pointer}
+    .phase-chip.active{outline:2px solid #7aa2ff}.phase-wrap{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
+    #logList{max-height:220px;overflow:auto;font-size:12px;line-height:1.35}.log-item{padding:4px 6px;border-bottom:1px dashed #2b3350}.log-time{opacity:.7;margin-right:6px}
+    .mn-chip{border:1px solid #5b2bbd;background:rgba(124,58,237,.12);color:#e9d5ff;border-radius:10px;padding:4px 8px;font-size:12px;cursor:pointer}.mn-active{box-shadow:0 0 0 2px rgba(124,58,237,.35) inset}
+    .card-tools{position:absolute;left:6px;top:6px;display:flex;gap:4px;z-index:3}
+    .tool-btn{border:1px solid #33405f;background:#0f1426;color:#dfe6ff;border-radius:8px;padding:2px 6px;font-size:11px;cursor:pointer;user-select:none}
+    .counter-badge{position:absolute;right:6px;top:6px;z-index:3;background:rgba(10,12,20,.8);border:1px solid #34405f;padding:2px 6px;border-radius:8px;font-size:12px}
+    .tapped{transform:rotate(-6deg) translateY(2px);filter:grayscale(.15) brightness(.95)}
+    .fx-orb{position:fixed;width:24px;height:24px;pointer-events:none;z-index:200;will-change:transform,opacity;filter:drop-shadow(0 0 2px rgba(255,255,255,.5));transform:translateZ(0)}
+    .pile-card.hit{animation:pilePulse .35s ease-out}
+    @keyframes pilePulse{0%{box-shadow:0 0 0 0 rgba(122,162,255,.45),inset 0 0 0 1px rgba(255,255,255,.08)}100%{box-shadow:0 0 0 14px rgba(122,162,255,0),inset 0 0 0 1px rgba(255,255,255,.08)}}
   </style>
 </head>
 <body>
 <header>
   <div class="rowbar" style="flex-wrap:nowrap">
     <h1>Mage Noir</h1>
-
-    <div class="rowbar" style="gap:6px; flex-wrap:nowrap">
+    <div class="rowbar" style="gap:6px;flex-wrap:nowrap">
       <button class="btn small alt" id="createBtn" type="button">Créer une partie</button>
       <input id="roomId" class="input" placeholder="Code salle (ex: ABC123)" />
       <button class="btn small alt" id="joinBtn" type="button">Rejoindre</button>
       <button class="btn small ghost" id="restartBtn">Relancer la partie</button>
     </div>
-
     <span class="spacer"></span>
-
-    <div class="rowbar" style="gap:6px; flex-wrap:nowrap">
+    <div class="rowbar" style="gap:6px;flex-wrap:nowrap">
       <button class="btn small" id="deckbuilderBtn" type="button">Deckbuilder</button>
       <label class="btn small alt" style="cursor:pointer">
         Importer Deck
         <input id="deckFile" type="file" accept=".txt,.deck,.csv" style="display:none">
       </label>
     </div>
-
     <span id="netStatus" style="font-size:12px;color:#9fb5ff;margin-left:12px"></span>
     <span class="share" id="shareWrap" style="display:none">
       • Lien : <code id="shareUrl"></code>
@@ -276,11 +137,11 @@
     <!-- ENNEMI -->
     <div class="zone" style="margin-bottom:var(--gutter)">
       <div class="slots" style="justify-content:flex-start">
-        <div style="display:flex; flex-direction:column; gap:10px; margin-right:10px">
+        <div style="display:flex;flex-direction:column;gap:10px;margin-right:10px">
           <div class="slot" id="oppDiscardSlot"><span class="label">Défausse</span></div>
           <div class="slot" id="oppDeckSlot"><img class="back" src="back.png" alt=""><span class="badge" id="oppDeckCnt"></span><span class="label">Deck</span></div>
         </div>
-        <div style="flex:1; flex-direction:column; gap:10px">
+        <div style="flex:1;flex-direction:column;gap:10px">
           <div class="hand row" id="oppHand"></div>
           <div class="row" style="gap:10px">
             <div class="zone" style="flex:1">
@@ -292,7 +153,7 @@
               <div id="oppChanneled" class="pile channeled-wrap"></div>
             </div>
           </div>
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
             <div id="oppReserve" class="reserve-bar" style="flex:1"></div>
             <button class="btn small ghost" disabled title="Contrôle Joueur uniquement">Échanger Mana</button>
           </div>
@@ -328,12 +189,12 @@
     <!-- JOUEUR -->
     <div class="zone">
       <div class="slots" style="justify-content:flex-start">
-        <div style="display:flex; flex-direction:column; gap:10px; margin-right:10px">
+        <div style="display:flex;flex-direction:column;gap:10px;margin-right:10px">
           <div class="slot" id="meDeckSlot"><img class="back" src="back.png" alt=""><span class="badge" id="meDeckCnt"></span><span class="label">Deck</span></div>
           <div class="slot" id="meDiscardSlot"><span class="label">Défausse</span></div>
         </div>
-        <div style="flex:1; display:flex; flex-direction:column; gap:10px">
-          <div style="display:flex; align-items:center; gap:8px">
+        <div style="flex:1;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:8px">
             <div id="meReserve" class="reserve-bar" style="flex:1"></div>
             <button class="btn small ghost" id="exchangeBtn">Échanger Mana</button>
           </div>
@@ -355,7 +216,6 @@
 
   <!-- Colonne droite -->
   <div class="rightcol">
-    <!-- Phases -->
     <div class="zone">
       <h3>Étape du tour</h3>
       <div class="phase-wrap">
@@ -364,10 +224,10 @@
         <button class="phase-chip" data-phase="action">Actions</button>
         <button class="phase-chip" data-phase="end">Fin</button>
       </div>
-      <div style="display:flex; gap:6px; justify-content:center; margin-top:8px">
+      <div style="display:flex;gap:6px;justify-content:center;margin-top:8px">
         <button class="btn small alt" id="phaseNext">Étape suivante</button>
       </div>
-      <div class="muted" style="text-align:center; margin-top:6px">Certaines actions sont limitées selon l’étape (ex. prendre une pile → Récupération).</div>
+      <div class="muted" style="text-align:center;margin-top:6px">Certaines actions sont limitées selon l’étape (ex. prendre une pile → Récupération).</div>
     </div>
 
     <div class="zone">
@@ -376,13 +236,13 @@
         <div class="pile-card">
           <div class="pile-head"><div><b>Pile 1</b></div><div><span id="p0Total">0</span> Mana</div></div>
           <div class="bar"><div class="bar-inner" id="p0Bar"></div></div>
-          <div class="orbslist" id="p0Orbs" style="margin:6px 0 8px; display:flex; gap:4px; flex-wrap:wrap"></div>
+          <div class="orbslist" id="p0Orbs" style="margin:6px 0 8px;display:flex;gap:4px;flex-wrap:wrap"></div>
           <button class="btn small alt" id="takeP0Btn">Prendre Pile 1</button>
         </div>
         <div class="pile-card">
           <div class="pile-head"><div><b>Pile 2</b></div><div><span id="p1Total">0</span> Mana</div></div>
           <div class="bar"><div class="bar-inner" id="p1Bar"></div></div>
-          <div class="orbslist" id="p1Orbs" style="margin:6px 0 8px; display:flex; gap:4px; flex-wrap:wrap"></div>
+          <div class="orbslist" id="p1Orbs" style="margin:6px 0 8px;display:flex;gap:4px;flex-wrap:wrap"></div>
           <button class="btn small alt" id="takeP1Btn">Prendre Pile 2</button>
         </div>
       </div>
@@ -406,18 +266,17 @@
       </div>
     </div>
 
-    <!-- Journal -->
     <div class="zone">
       <h3>Journal</h3>
       <div id="logList"></div>
-      <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:8px">
+      <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:8px">
         <button id="logClear" class="btn small ghost">Effacer</button>
       </div>
     </div>
   </div>
 </main>
 
-<!-- Modal Deckbuilder -->
+<!-- Modals -->
 <div id="deckbuilderModal" class="modal" aria-hidden="true">
   <div class="modal-inner">
     <div class="db-head">
@@ -427,20 +286,16 @@
       <button class="btn small ghost" id="dbClose">Fermer</button>
     </div>
     <div class="db-body">
-      <div class="db-gallery">
-        <div id="dbGrid" class="db-grid"></div>
-      </div>
+      <div class="db-gallery"><div id="dbGrid" class="db-grid"></div></div>
       <div class="db-side">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px">
-          <b>Deck</b>
-          <div class="pill">Cartes: <span id="deckCount">0</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <b>Deck</b><div class="pill">Cartes: <span id="deckCount">0</span></div>
         </div>
         <div id="deckList" class="deck-list"></div>
-        <div style="display:flex; gap:6px; margin-top:8px">
+        <div style="display:flex;gap:6px;margin-top:8px">
           <button class="btn small alt" id="dbClear">Vider</button>
           <button class="btn small" id="dbExport">Exporter .txt</button>
-          <label class="btn small ghost" style="cursor:pointer; margin-left:auto">
-            Importer .txt
+          <label class="btn small ghost" style="cursor:pointer;margin-left:auto">Importer .txt
             <input id="dbImportFile" type="file" accept=".txt" style="display:none">
           </label>
         </div>
@@ -449,16 +304,13 @@
   </div>
 </div>
 
-<!-- Modal Échange Mana -->
 <div id="exModal" class="modal" aria-hidden="true">
   <div class="modal-inner">
-    <div style="display:flex; align-items:center; justify-content:space-between">
+    <div style="display:flex;align-items:center;justify-content:space-between">
       <h3 style="margin:0">Échanger Mana (2 → 1)</h3>
       <button class="btn small ghost" id="exClose">Fermer</button>
     </div>
-
     <div class="muted">Choisis la pile (par défaut la plus grande), le mana à récupérer depuis cette pile, puis paie exactement 2 manas de ta réserve. Les 2 manas payés vont dans la pile choisie.</div>
-
     <div class="ex-row" style="margin-top:10px">
       <div class="ex-block">
         <div class="ex-title">Pile ciblée</div>
@@ -466,14 +318,12 @@
         <div class="ex-title" style="margin-top:10px">Manas dans la pile</div>
         <div class="ex-chips" id="exPileElems"></div>
       </div>
-
       <div class="ex-block">
         <div class="ex-title">Payer 2 manas (réserve joueur)</div>
         <div id="exPayRows"></div>
         <div class="muted" id="exPayInfo" style="margin-top:6px"></div>
       </div>
     </div>
-
     <div class="ex-footer" style="margin-top:10px">
       <button class="btn small alt" id="exReset">Réinitialiser</button>
       <button class="btn small" id="exConfirm">Confirmer l’échange</button>
@@ -481,90 +331,74 @@
   </div>
 </div>
 
-<!-- Zoom -->
 <div id="zoomPopup" aria-hidden="true"><img alt="aperçu carte"></div>
 
 <script>
 /* =================== Réseau (Socket.IO) =================== */
 const net = {
-  socket: null,
-  room: null,
+  socket:null, room:null, joined:false, _queue:[],
   connect(roomId){
     if(!this.socket){
       this.socket = io({
-        path: '/socket.io',
-        transports: ['websocket','polling'],
-        reconnection: true,
-        reconnectionAttempts: 20,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        timeout: 15000,
-        autoConnect: false
+        path:'/socket.io',
+        transports:['websocket','polling'],
+        reconnection:true, reconnectionAttempts:20,
+        reconnectionDelay:1000, reconnectionDelayMax:5000,
+        timeout:15000, autoConnect:false
       });
       this.wire();
     }
     this.room = roomId;
-    try { this.socket.connect(); } catch {}
+    this.joined = false;
+    try{ this.socket.connect(); }catch{}
   },
   wire(){
-    const s = this.socket;
-    s.on('connect',   ()=>{
+    const s=this.socket;
+    s.on('connect', ()=>{
       setNetStatus('Connecté', '#a7f3d0');
-      // ⬇️ AUTO-JOIN de la salle dès que le socket est connecté
-      net.emit('room:join', {}); // net.emit ajoute automatiquement {room: net.room}
-      showShareLink(net.room);
+      this.emit('room:join', {}); // demande d’entrée en salle
+      showShareLink(this.room);
     });
-    s.on('disconnect',(reason)=> {
-      console.warn('[socket] disconnect:', reason);
-      setNetStatus('Déconnecté', '#fca5a5');
-    });
-    s.on('connect_error', (err)=> {
-      console.error('[socket] connect_error:', err?.message || err);
-      setNetStatus(`Erreur réseau: ${err?.message || 'inconnue'}`, '#fca5a5');
-    });
-    s.on('error', (err)=>{
-      console.error('[socket] error:', err);
-      setNetStatus(`Erreur: ${err?.message || err}`, '#fca5a5');
-    });
-    s.on('reconnect_attempt', (n)=> setNetStatus(`Reconnexion… (${n})`, '#fcd34d'));
-    s.on('reconnect_failed', ()=> setNetStatus('Reconnexion échouée', '#fca5a5'));
-    s.on('reconnect', (n)=> setNetStatus(`Reconnecté (${n})`, '#a7f3d0'));
+    s.on('disconnect',(reason)=>{ console.warn('[socket] disconnect:', reason); setNetStatus('Déconnecté', '#fca5a5'); this.joined=false; });
+    s.on('connect_error',(err)=>{ console.error('[socket] connect_error:', err?.message||err); setNetStatus(`Erreur réseau: ${err?.message||'inconnue'}`, '#fca5a5'); });
+    s.on('error',(err)=>{ console.error('[socket] error:', err); setNetStatus(`Erreur: ${err?.message||err}`, '#fca5a5'); });
+    s.on('reconnect_attempt',(n)=> setNetStatus(`Reconnexion… (${n})`, '#fcd34d'));
+    s.on('reconnect_failed',()=> setNetStatus('Reconnexion échouée', '#fca5a5'));
+    s.on('reconnect',(n)=> setNetStatus(`Reconnecté (${n})`, '#a7f3d0'));
 
-    s.on('room:joined', (payload)=> {
-      if(payload?.room===net.room){
-        setNetStatus(`Salle ${net.room}`, '#93c5fd');
-        showShareLink(net.room);
+    s.on('room:joined', (payload)=>{
+      if(payload?.room===this.room){
+        this.joined = true;
+        setNetStatus(`Salle ${this.room}`, '#93c5fd');
+        showShareLink(this.room);
+        this.flush();
       }
     });
     s.on('state:remote', (payload)=>{
-      if(!payload || payload.room!==net.room) return;
+      if(!payload || payload.room!==this.room) return;
       applyRemoteState(payload.state||{});
     });
   },
   emit(type, data){
     if(!this.socket || !this.room || this.socket.disconnected) return;
+    if(type!=='room:join' && !this.joined){
+      // buffer tant qu’on n’a pas reçu room:joined
+      this._queue.push([type, data]);
+      return;
+    }
     this.socket.emit(type, { room:this.room, ...data });
+  },
+  flush(){
+    const q=[...this._queue]; this._queue.length=0;
+    for(const [t,d] of q){ this.emit(t,d); }
   }
 };
-function setNetStatus(text, color='#9fb5ff'){
-  const el = document.getElementById('netStatus');
-  if(el){ el.textContent = `• ${text}`; el.style.color = color; }
-}
-function showShareLink(code){
-  const wrap = document.getElementById('shareWrap');
-  const el = document.getElementById('shareUrl');
-  const url = `${location.origin}/#${code}`;
-  el.textContent = url;
-  wrap.style.display = 'inline-flex';
-}
-document.getElementById('copyLinkBtn').addEventListener('click', async ()=>{
-  const url = document.getElementById('shareUrl').textContent;
-  try{ await navigator.clipboard.writeText(url); setNetStatus('Lien copié dans le presse-papiers', '#a7f3d0'); }
-  catch{ setNetStatus('Impossible de copier le lien', '#fca5a5'); }
-});
+function setNetStatus(text, color='#9fb5ff'){ const el=document.getElementById('netStatus'); if(el){ el.textContent=`• ${text}`; el.style.color=color; } }
+function showShareLink(code){ const wrap=document.getElementById('shareWrap'); const el=document.getElementById('shareUrl'); const url=`${location.origin}/#${code}`; el.textContent=url; wrap.style.display='inline-flex'; }
+document.getElementById('copyLinkBtn').addEventListener('click', async ()=>{ const url=document.getElementById('shareUrl').textContent; try{ await navigator.clipboard.writeText(url); setNetStatus('Lien copié', '#a7f3d0'); }catch{ setNetStatus('Impossible de copier', '#fca5a5'); } });
 
-/* =================== Helpers généraux =================== */
-const ELEMENTS = ["Air","Feu","Eau","Végétal","Minéral","Arcane"];
+/* =================== Helpers =================== */
+const ELEMENTS=["Air","Feu","Eau","Végétal","Minéral","Arcane"];
 function getCSS(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 const EL_COL={Air:getCSS('--air'),Feu:getCSS('--feu'),Eau:getCSS('--eau'),"Végétal":getCSS('--vegetal'),"Minéral":getCSS('--mineral'),Arcane:getCSS('--arcane')};
 const isPathId = (id)=> /[\\/]|\\.(png|jpe?g|webp)$/i.test(String(id||""));
@@ -576,149 +410,106 @@ function nowStr(){ const d=new Date(); return d.toLocaleTimeString([], {hour:'2-
 
 /* =================== Cartes – index local =================== */
 let CARD_INDEX={};
-let LOCAL_CARDS = { list:[], byPath:new Map(), byBase:new Map(), byElem:new Map(), loaded:false };
-
+let LOCAL_CARDS={ list:[], byPath:new Map(), byBase:new Map(), byElem:new Map(), loaded:false };
 function fileBase(path){ return String(path).split('/').pop(); }
-function getElementFromPath(path){
-  const parts = String(path).split('/');
-  const ix = parts.indexOf('cartes');
-  if(ix>=0 && parts[ix+1]) return parts[ix+1];
-  return "Inconnu";
-}
-function prettyNameFromFilename(base){
-  const noExt = base.replace(/\.[^.]+$/,'');
-  const m = noExt.match(/^imgi?_\d+_(.+)$/i);
-  const core = m ? m[1] : noExt;
-  return core.replace(/[-_]+/g,' ').replace(/\b\w/g, c=>c.toUpperCase()).replace(/ D /g,' d ').replace(/ L /g,' l ');
-}
-
+function getElementFromPath(path){ const parts=String(path).split('/'); const ix=parts.indexOf('cartes'); if(ix>=0 && parts[ix+1]) return parts[ix+1]; return "Inconnu"; }
+function prettyNameFromFilename(base){ const noExt=base.replace(/\.[^.]+$/,''); const m=noExt.match(/^imgi?_\d+_(.+)$/i); const core=m?m[1]:noExt; return core.replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).replace(/ D /g,' d ').replace(/ L /g,' l '); }
 async function loadLocalCardsIndex(){
   if(LOCAL_CARDS.loaded) return LOCAL_CARDS;
   try{
-    const res = await fetch("cards.json", {cache:"no-store"});
+    const res=await fetch("cards.json",{cache:"no-store"});
     if(!res.ok) throw new Error("cards.json introuvable");
-    const list = await res.json();
-    LOCAL_CARDS.list = Array.isArray(list) ? list.map(p=>String(p).replace(/\\/g,'/')) : [];
-    LOCAL_CARDS.byPath.clear();
-    LOCAL_CARDS.byBase.clear();
-    LOCAL_CARDS.byElem.clear();
-
+    const list=await res.json();
+    LOCAL_CARDS.list=Array.isArray(list)? list.map(p=>String(p).replace(/\\/g,'/')) : [];
+    LOCAL_CARDS.byPath.clear(); LOCAL_CARDS.byBase.clear(); LOCAL_CARDS.byElem.clear();
     for(const p of LOCAL_CARDS.list){
-      const base = fileBase(p).toLowerCase();
-      const elem = getElementFromPath(p);
-      LOCAL_CARDS.byPath.set(p, p);
-      LOCAL_CARDS.byBase.set(base, p);
-      if(!LOCAL_CARDS.byElem.has(elem)) LOCAL_CARDS.byElem.set(elem, []);
+      const base=fileBase(p).toLowerCase(); const elem=getElementFromPath(p);
+      LOCAL_CARDS.byPath.set(p,p); LOCAL_CARDS.byBase.set(base,p);
+      if(!LOCAL_CARDS.byElem.has(elem)) LOCAL_CARDS.byElem.set(elem,[]);
       LOCAL_CARDS.byElem.get(elem).push(p);
-      CARD_INDEX[p] = CARD_INDEX[p] || { id:p, name:prettyNameFromFilename(fileBase(p)), image:p, element:elem };
+      CARD_INDEX[p]=CARD_INDEX[p] || { id:p, name:prettyNameFromFilename(fileBase(p)), image:p, element:elem };
     }
-    LOCAL_CARDS.loaded = true;
-  }catch(e){
-    alert("cards.json introuvable ou invalide. Place-le dans /public à côté d’index.html.\n" + e.message);
-  }
+    LOCAL_CARDS.loaded=true;
+  }catch(e){ alert("cards.json introuvable ou invalide. Place-le dans /public.\n"+e.message); }
   return LOCAL_CARDS;
 }
 
 /* =================== État de partie =================== */
-function makePlayer(starter){
-  const deck=shuffle(starter);
-  return { life:20, reserve:emptyRes(), hand:[], deck, discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
-}
+function makePlayer(starter){ const deck=shuffle(starter); return { life:20, reserve:emptyRes(), hand:[], deck, discard:[], prepared:[], channeled:[], board:[], isMageNoir:false }; }
 const G={
-  players:{ "0":null, "1":null},
-  current:"0",
-  turn:1,
+  players:{ "0":null, "1":null },
+  current:"0", turn:1,
   ether:[[],[]],
-  _flip:null,      // alternance pour ajout par picker
-  _relFlip:null,   // alternance pour libération depuis la réserve (séquence)
-  phase:"setup",   // draw | recover | action | end | setup
-  step:"recover",  // logique existante pour la récup (choosePile, etc.)
+  _flip:null, _relFlip:null,
+  phase:"setup", step:"recover",
   log:[],
   picker:{desired:3, counts:emptyRes()},
   startChoice:{ active:false, pid:null, pileA:[], pileB:[] }
 };
 
 /* =================== Journal =================== */
-function writeLog(msg){
-  const entry = { t: nowStr(), msg };
-  G.log.push(entry);
-  if(G.log.length>200) G.log.splice(0, G.log.length-200);
-  renderLog();
-  netSync();
-}
-function renderLog(){
-  const wrap = document.getElementById('logList');
-  if(!wrap) return;
-  wrap.innerHTML = G.log.map(e=>`<div class="log-item"><span class="log-time">[${e.t}]</span>${e.msg}</div>`).join("");
-}
+function writeLog(msg){ const entry={t:nowStr(), msg}; G.log.push(entry); if(G.log.length>200) G.log.splice(0, G.log.length-200); renderLog(); netSync(); }
+function renderLog(){ const wrap=document.getElementById('logList'); if(!wrap) return; wrap.innerHTML=G.log.map(e=>`<div class="log-item"><span class="log-time">[${e.t}]</span>${e.msg}</div>`).join(""); }
 document.getElementById('logClear').onclick=()=>{ G.log=[]; renderLog(); netSync(); };
 
 /* =================== Réseau – sync public =================== */
+// NB: on publie toujours l’état "depuis la perspective locale" (player "0")
 function buildPublicState(){
-  const me = G.players["0"];
+  const me=G.players["0"];
   return {
     me:{
-      life: me.life,
-      reserve: me.reserve,
-      prepared: me.prepared,
-      channeled: me.channeled,
-      board: me.board,
+      life: me.life, reserve: me.reserve,
+      prepared: me.prepared, channeled: me.channeled, board: me.board,
       isMageNoir: me.isMageNoir,
       discardTop: me.discard.length? me.discard[me.discard.length-1] : null,
       discardCnt: me.discard.length||0,
       deckCnt: me.deck.length||0,
       handCnt: me.hand.length||0
     },
-    ether: G.ether, turn: G.turn, current: G.current,
-    phase: G.phase, step: G.step,
+    ether: G.ether, turn:G.turn, current:G.current, phase:G.phase, step:G.step,
     log: G.log
   };
 }
 function applyRemoteState(state){
-  const opp = G.players["1"];
-  if(!opp) return;
-  const src = state.me || {};
+  const opp=G.players["1"]; if(!opp) return;
+  const src=state.me||{};
   opp.life = src.life ?? opp.life;
   opp.reserve = src.reserve || opp.reserve;
   opp.prepared = Array.isArray(src.prepared)? src.prepared : opp.prepared;
-  opp.channeled = Array.isArray(src.channeled)? src.channeled : opp.channeled;
-  opp.board = Array.isArray(src.board)? src.board : opp.board;
+  opp.channeled= Array.isArray(src.channeled)? src.channeled: opp.channeled;
+  opp.board    = Array.isArray(src.board)? src.board : opp.board;
   opp.isMageNoir = !!src.isMageNoir;
   opp.discard = src.discardTop ? [ { id: src.discardTop } ] : [];
   opp.deck = new Array(Number(src.deckCnt||0)).fill(null);
   opp.hand = new Array(Number(src.handCnt||0)).fill(null);
 
-  if(Array.isArray(state.ether)) G.ether = state.ether;
-  if(typeof state.turn==="number") G.turn = state.turn;
-  if(state.current==="0" || state.current==="1") G.current = state.current;
-  if(state.phase) G.phase = state.phase;
-  if(state.step)  G.step  = state.step;
-  if(Array.isArray(state.log)) G.log = state.log;
+  if(Array.isArray(state.ether)) G.ether=state.ether;
+  if(typeof state.turn==="number") G.turn=state.turn;
+  if(state.current==="0"||state.current==="1") G.current=state.current;
+  if(state.phase) G.phase=state.phase;
+  if(state.step)  G.step =state.step;
+  if(Array.isArray(state.log)) G.log=state.log;
 
   render();
 }
 let lastSync=0;
 function netSync(){
   if(!net.room || !net.socket || net.socket.disconnected) return;
-  const now = Date.now();
-  if(now - lastSync < 150) return;
-  lastSync = now;
+  const now=Date.now(); if(now-lastSync<150) return;
+  lastSync=now;
   net.emit('state:update', { state: buildPublicState() });
 }
 
 /* =================== Éther & Sélecteur =================== */
-const iconUrl = {
-  "Air": "https://magenoir.com/img/mage-noir/pictograms/air_icon.png",
-  "Feu": "https://magenoir.com/img/mage-noir/pictograms/fire_icon.png",
-  "Eau": "https://magenoir.com/img/mage-noir/pictograms/water_icon.png",
-  "Végétal": "https://magenoir.com/img/mage-noir/pictograms/vegetal_icon.png",
-  "Minéral": "https://magenoir.com/img/mage-noir/pictograms/mineral_icon.png",
-  "Arcane": "https://magenoir.com/img/mage-noir/pictograms/arcane_icon.png"
+const iconUrl={
+  "Air":"https://magenoir.com/img/mage-noir/pictograms/air_icon.png",
+  "Feu":"https://magenoir.com/img/mage-noir/pictograms/fire_icon.png",
+  "Eau":"https://magenoir.com/img/mage-noir/pictograms/water_icon.png",
+  "Végétal":"https://magenoir.com/img/mage-noir/pictograms/vegetal_icon.png",
+  "Minéral":"https://magenoir.com/img/mage-noir/pictograms/mineral_icon.png",
+  "Arcane":"https://magenoir.com/img/mage-noir/pictograms/arcane_icon.png"
 };
-function etherSmallest(){ return (G.ether[0].length<=G.ether[1].length)?0:1; }
-function orbsHTML(arr){
-  return arr.map(e => `<img src="${iconUrl[e]}" alt="${e}" title="${e}" style="width:24px;height:24px;object-fit:contain;filter:drop-shadow(0 0 1px ${EL_COL[e]});">`).join("");
-}
+function orbsHTML(arr){ return arr.map(e=>`<img src="${iconUrl[e]}" alt="${e}" title="${e}" style="width:24px;height:24px;object-fit:contain;filter:drop-shadow(0 0 1px ${EL_COL[e]});">`).join(""); }
 function renderEther(){
   const t0=G.ether[0].length, t1=G.ether[1].length, sum=(t0+t1)||1;
   document.getElementById("p0Total").textContent=t0;
@@ -728,25 +519,23 @@ function renderEther(){
   document.getElementById("p0Orbs").innerHTML=orbsHTML(G.ether[0]);
   document.getElementById("p1Orbs").innerHTML=orbsHTML(G.ether[1]);
 }
-const manaCards = document.getElementById('manaCards');
+const manaCards=document.getElementById('manaCards');
 manaCards.addEventListener('click',(e)=>{
-  const card = e.target.closest('.mcard'); if(!card) return;
-  const el = card.dataset.el;
-  const total = Object.values(G.picker.counts).reduce((a,b)=>a+b,0);
+  const card=e.target.closest('.mcard'); if(!card) return;
+  const el=card.dataset.el;
+  const total=Object.values(G.picker.counts).reduce((a,b)=>a+b,0);
   if(total>=G.picker.desired) return;
   G.picker.counts[el]=(G.picker.counts[el]||0)+1;
   renderPicker();
 });
 document.getElementById('pickerClear').onclick=()=>{ G.picker.counts=emptyRes(); renderPicker(); };
 document.getElementById('pickerOk').onclick=()=>{
-  const total = Object.values(G.picker.counts).reduce((a,b)=>a+b,0);
+  const total=Object.values(G.picker.counts).reduce((a,b)=>a+b,0);
   if(total!==G.picker.desired){ alert("Sélectionnez exactement "+G.picker.desired+" Mana."); return; }
   const arr=[]; for(const [el,n] of Object.entries(G.picker.counts)) for(let i=0;i<n;i++) arr.push(el);
   etherAdd(arr);
   writeLog(`Ajoute ${total} mana(s) à l'Éther.`);
-  G.picker.counts=emptyRes();
-  G.phase="recover";
-  G.step="choosePile";
+  G.picker.counts=emptyRes(); G.phase="recover"; G.step="choosePile";
   renderPicker();
 };
 function etherAdd(manas){
@@ -758,23 +547,20 @@ function etherAdd(manas){
     G.ether[target].push(el);
     G._flip=1-target;
   }
-  G._flip=null;
-  G._relFlip=null;
+  G._flip=null; G._relFlip=null;
   renderEther(); netSync();
 }
 function renderPicker(){
-  const total = Object.values(G.picker.counts).reduce((a,b)=>a+b,0);
-  document.getElementById('pickRemain').textContent = (G.picker.desired - total);
-  const picked=document.getElementById('pickedList');
-  picked.innerHTML="";
+  const total=Object.values(G.picker.counts).reduce((a,b)=>a+b,0);
+  document.getElementById('pickRemain').textContent=(G.picker.desired-total);
+  const picked=document.getElementById('pickedList'); picked.innerHTML="";
   for(const e of ELEMENTS){
     const n=G.picker.counts[e]||0; if(!n) continue;
     const item=document.createElement('div'); item.className='res-item';
     const img=document.createElement('img'); img.src=iconUrl[e]; img.alt=e; img.title=e;
     const name=document.createElement('span'); name.textContent=e;
     const cnt=document.createElement('b'); cnt.textContent='×'+n;
-    item.append(img, name, cnt);
-    picked.appendChild(item);
+    item.append(img,name,cnt); picked.appendChild(item);
   }
 }
 document.getElementById("takeP0Btn").onclick=()=>takePile(0);
@@ -783,133 +569,93 @@ function ensurePhase(need){ return G.phase===need; }
 function takePile(i){
   if(!ensurePhase('recover')){ alert("Tu ne peux prendre une pile qu’à l’étape Récupération."); return; }
   if(G.step!=="choosePile"){ alert("Ajoute d’abord 3 Mana à l’Éther."); return; }
-  const me=G.players[G.current];
+  const me=G.players["0"];
   if(G.ether[i].length===0){ alert("Pile vide."); return; }
-
-  // FX burst
   pileToReserveBurstFx(i);
-
   for(const el of G.ether[i]){ me.reserve[el]=(me.reserve[el]||0)+1; }
   writeLog(`Prend la Pile ${i+1} (${G.ether[i].length} mana) → Réserve.`);
-  G.ether[i]=[];
-  G._relFlip=null;
-  G.step="main";
-  G.phase="action";
+  G.ether[i]=[]; G._relFlip=null; G.step="main"; G.phase="action";
   render(); netSync();
 }
 
 /* =================== PV & Mage Noir =================== */
 function changeLife(pid, delta){
-  const p = G.players[pid];
-  p.life = Math.max(0, (p.life||0) + delta);
-  writeLog(`${pid===G.current?'Moi':'Ennemi'} ${delta>0?'gagne':'perd'} ${Math.abs(delta)} PV (→ ${p.life}).`);
+  const p=G.players[pid]; p.life=Math.max(0,(p.life||0)+delta);
+  writeLog(`${pid==="0"?'Moi':'Ennemi'} ${delta>0?'gagne':'perd'} ${Math.abs(delta)} PV (→ ${p.life}).`);
   render(); netSync();
 }
-document.getElementById('meLifeMinus').onclick = ()=> changeLife(G.current, -1);
-document.getElementById('meLifePlus').onclick  = ()=> changeLife(G.current, +1);
-document.getElementById('oppLifeMinus').onclick = ()=> changeLife(other(G.current), -1);
-document.getElementById('oppLifePlus').onclick  = ()=> changeLife(other(G.current), +1);
+document.getElementById('meLifeMinus').onclick = ()=> changeLife("0",-1);
+document.getElementById('meLifePlus').onclick  = ()=> changeLife("0",+1);
+document.getElementById('oppLifeMinus').onclick = ()=> changeLife("1",-1);
+document.getElementById('oppLifePlus').onclick  = ()=> changeLife("1",+1);
 
 document.getElementById('meMageToggle').onclick = ()=>{
-  const me = G.players[G.current]; me.isMageNoir=!me.isMageNoir;
-  writeLog(`Moi : ${me.isMageNoir?'devient':'n’est plus'} Mage Noir.`);
-  render(); netSync();
+  const me=G.players["0"]; me.isMageNoir=!me.isMageNoir;
+  writeLog(`Moi : ${me.isMageNoir?'devient':'n’est plus'} Mage Noir.`); render(); netSync();
 };
 document.getElementById('oppMageToggle').onclick = ()=>{
-  const opp = G.players[other(G.current)]; opp.isMageNoir=!opp.isMageNoir;
-  writeLog(`Ennemi : ${opp.isMageNoir?'devient':'n’est plus'} Mage Noir.`);
-  render(); netSync();
+  const opp=G.players["1"]; opp.isMageNoir=!opp.isMageNoir;
+  writeLog(`Ennemi : ${opp.isMageNoir?'devient':'n’est plus'} Mage Noir.`); render(); netSync();
 };
 
-/* =================== Drag & Drop =================== */
-let dragCardId = null;
-function cardDragStart(ev, cid){
-  dragCardId = cid; document.body.classList.add('dragging');
-  ev.dataTransfer.setData("text/plain", cid); ev.dataTransfer.effectAllowed = "move";
-}
+/* =================== Drag & Drop (toujours joueur local "0") =================== */
+let dragCardId=null;
+function cardDragStart(ev,cid){ dragCardId=cid; document.body.classList.add('dragging'); ev.dataTransfer.setData("text/plain", cid); ev.dataTransfer.effectAllowed="move"; }
 function clearDrag(){ dragCardId=null; document.body.classList.remove('dragging'); }
-function attachDrop(el, dest){
+function attachDrop(el,dest){
   if(!el) return;
   el.classList.add('drop-target');
-  el.addEventListener('dragover', (e)=>{ e.preventDefault(); e.dataTransfer.dropEffect='move'; el.classList.add('is-dragover'); });
-  el.addEventListener('dragleave', ()=>{ el.classList.remove('is-dragover'); });
-  el.addEventListener('drop', (e)=>{
+  el.addEventListener('dragover',(e)=>{ e.preventDefault(); e.dataTransfer.dropEffect='move'; el.classList.add('is-dragover'); });
+  el.addEventListener('dragleave',()=>{ el.classList.remove('is-dragover'); });
+  el.addEventListener('drop',(e)=>{
     e.preventDefault(); el.classList.remove('is-dragover');
     if(!dragCardId){ clearDrag(); return; }
-    const me = G.players[G.current];
-    let moved = false;
-    const fromHandIdx = me.hand.indexOf(dragCardId);
-    if(fromHandIdx !== -1){ me.hand.splice(fromHandIdx,1); moved=true; }
-    const fromPrepIdx = me.prepared.findIndex(o=>o.id===dragCardId);
-    if(!moved && fromPrepIdx!==-1){ me.prepared.splice(fromPrepIdx,1); moved=true; }
-    const fromChanIdx = me.channeled.findIndex(o=>o.id===dragCardId);
-    if(!moved && fromChanIdx!==-1){ me.channeled.splice(fromChanIdx,1); moved=true; }
-    const fromBoardIdx = me.board.findIndex(o=>o.id===dragCardId);
-    if(!moved && fromBoardIdx!==-1){ me.board.splice(fromBoardIdx,1); moved=true; }
-    const fromDiscardIdx = me.discard.lastIndexOf(dragCardId);
-    if(!moved && fromDiscardIdx!==-1){ me.discard.splice(fromDiscardIdx,1); moved=true; }
-
+    const me=G.players["0"];
+    let moved=false;
+    const fromHandIdx=me.hand.indexOf(dragCardId); if(fromHandIdx!==-1){ me.hand.splice(fromHandIdx,1); moved=true; }
+    const fromPrepIdx=me.prepared.findIndex(o=>o.id===dragCardId); if(!moved && fromPrepIdx!==-1){ me.prepared.splice(fromPrepIdx,1); moved=true; }
+    const fromChanIdx=me.channeled.findIndex(o=>o.id===dragCardId); if(!moved && fromChanIdx!==-1){ me.channeled.splice(fromChanIdx,1); moved=true; }
+    const fromBoardIdx=me.board.findIndex(o=>o.id===dragCardId); if(!moved && fromBoardIdx!==-1){ me.board.splice(fromBoardIdx,1); moved=true; }
+    const fromDiscardIdx=me.discard.lastIndexOf(dragCardId); if(!moved && fromDiscardIdx!==-1){ me.discard.splice(fromDiscardIdx,1); moved=true; }
     if(!moved){ clearDrag(); return; }
-
     const def=CARD_INDEX[dragCardId]||{id:dragCardId,name:dragCardId};
-
-    if(dest === 'prepared'){ me.prepared.push({ id: dragCardId, meta:{t:false,c:0} }); writeLog(`Pose en Préparé : ${def.name||def.id}`); }
-    else if(dest === 'channeled'){ me.channeled.push({ id: dragCardId, meta:{t:false,c:0} }); writeLog(`Pose en Canalisé : ${def.name||def.id}`); }
-    else if(dest === 'hand'){ me.hand.push(dragCardId); writeLog(`Remet en Main : ${def.name||def.id}`); }
-    else if(dest === 'discard'){ me.discard.push(dragCardId); writeLog(`Défausse : ${def.name||def.id}`); }
-
+    if(dest==='prepared'){ me.prepared.push({id:dragCardId, meta:{t:false,c:0}}); writeLog(`Pose en Préparé : ${def.name||def.id}`); }
+    else if(dest==='channeled'){ me.channeled.push({id:dragCardId, meta:{t:false,c:0}}); writeLog(`Pose en Canalisé : ${def.name||def.id}`); }
+    else if(dest==='hand'){ me.hand.push(dragCardId); writeLog(`Remet en Main : ${def.name||def.id}`); }
+    else if(dest==='discard'){ me.discard.push(dragCardId); writeLog(`Défausse : ${def.name||def.id}`); }
     clearDrag(); render(); netSync();
   });
 }
-attachDrop(document.getElementById('mePrepared'),  'prepared');
-attachDrop(document.getElementById('meChanneled'), 'channeled');
-attachDrop(document.getElementById('meHand'),      'hand');
+attachDrop(document.getElementById('mePrepared'),'prepared');
+attachDrop(document.getElementById('meChanneled'),'channeled');
+attachDrop(document.getElementById('meHand'),'hand');
 attachDrop(document.getElementById('meDiscardSlot'),'discard');
-
-function onCardWrapper(cardEl, cid){
-  cardEl.setAttribute("draggable","true");
-  cardEl.addEventListener("dragstart", (ev)=>cardDragStart(ev,cid));
-}
+function onCardWrapper(cardEl,cid){ cardEl.setAttribute("draggable","true"); cardEl.addEventListener("dragstart",(ev)=>cardDragStart(ev,cid)); }
 
 /* =================== Rendu plateau =================== */
-function cardImagePath(def){
-  if(isPathId(def.id)) return String(def.id).replace(/\\/g,'/');
-  const img=def.image||`${def.id}.jpg`;
-  return `assets/cards/${img}`;
+function cardImagePath(def){ if(isPathId(def.id)) return String(def.id).replace(/\\/g,'/'); const img=def.image||`${def.id}.jpg`; return `assets/cards/${img}`; }
+function cardDivFromImage(src,alt="Carte",tapped=false,count=0){
+  const wrap=document.createElement("div"); wrap.className="card card-zoomable"+(tapped?' tapped':'');
+  const img=document.createElement("img"); img.className="card-img"; img.src=src; img.alt=alt; img.loading="lazy"; img.decoding="async"; img.setAttribute('draggable','false');
+  if(count>0){ const cb=document.createElement('div'); cb.className='counter-badge'; cb.textContent='×'+count; wrap.appendChild(cb); }
+  wrap.appendChild(img); return wrap;
 }
-function cardDivFromImage(src, alt="Carte", tapped=false, count=0){
-  const wrap=document.createElement("div");
-  wrap.className="card card-zoomable"+(tapped?' tapped':'');
-  const img=document.createElement("img");
-  img.className="card-img"; img.src=src; img.alt=alt; img.loading="lazy"; img.decoding="async"; img.setAttribute('draggable','false');
-
-  if(count>0){
-    const cb=document.createElement('div'); cb.className='counter-badge'; cb.textContent='×'+count;
-    wrap.appendChild(cb);
-  }
-  wrap.appendChild(img);
-  return wrap;
-}
-function ensureMeta(obj){ obj.meta = obj.meta || { t:false, c:0 }; return obj; }
+function ensureMeta(obj){ obj.meta=obj.meta||{t:false,c:0}; return obj; }
 function cardToolsOverlay(obj){
   const tools=document.createElement('div'); tools.className='card-tools';
   const tap=document.createElement('button'); tap.className='tool-btn'; tap.textContent='⟳';
   const plus=document.createElement('button'); plus.className='tool-btn'; plus.textContent='+';
   const minus=document.createElement('button'); minus.className='tool-btn'; minus.textContent='–';
-
   tap.title='Engager / Dégager'; plus.title='Ajouter un compteur'; minus.title='Retirer un compteur';
-
   tap.onclick=(ev)=>{ ev.stopPropagation(); obj.meta.t=!obj.meta.t; render(); netSync(); };
   plus.onclick=(ev)=>{ ev.stopPropagation(); obj.meta.c=(obj.meta.c||0)+1; render(); netSync(); };
   minus.onclick=(ev)=>{ ev.stopPropagation(); obj.meta.c=Math.max(0,(obj.meta.c||0)-1); render(); netSync(); };
-
-  tools.append(tap, plus, minus);
-  return tools;
+  tools.append(tap,plus,minus); return tools;
 }
-function renderPile(container, entries, withTools=false){
+function renderPile(container,entries,withTools=false){
   container.innerHTML="";
   entries.forEach((obj)=>{
-    const entry = typeof obj==='string' ? { id: obj } : obj;
+    const entry=typeof obj==='string'? {id:obj} : obj;
     ensureMeta(entry);
     const def=CARD_INDEX[entry.id]||{id:entry.id,name:entry.id};
     const el=cardDivFromImage(cardImagePath(def), def.name||def.id, entry.meta.t, entry.meta.c);
@@ -918,170 +664,100 @@ function renderPile(container, entries, withTools=false){
     container.appendChild(el);
   });
 }
-function renderPrepared(container, entries){ renderPile(container, entries, true); }
-function renderHand(container, ids){
+function renderPrepared(container,entries){ renderPile(container, entries, true); }
+function renderHand(container,ids){
   container.innerHTML="";
   ids.forEach(cid=>{
     const def=CARD_INDEX[cid]||{id:cid,name:cid};
     const card=cardDivFromImage(cardImagePath(def), def.name||def.id, false, 0);
-    onCardWrapper(card, cid);
-    container.appendChild(card);
+    onCardWrapper(card,cid); container.appendChild(card);
   });
 }
-function renderOpponentHand(container, count){
-  container.innerHTML = "";
-  for (let i = 0; i < count; i++) {
-    const slot = document.createElement("div");
-    slot.className = "card card-zoomable";
-    const img = document.createElement("img");
-    img.className = "card-img";
-    img.src = "back.png"; img.alt = "Carte cachée"; img.setAttribute('draggable','false');
-    slot.appendChild(img);
-    container.appendChild(slot);
+function renderOpponentHand(container,count){
+  container.innerHTML="";
+  for(let i=0;i<count;i++){
+    const slot=document.createElement("div"); slot.className="card card-zoomable";
+    const img=document.createElement("img"); img.className="card-img"; img.src="back.png"; img.alt="Carte cachée"; img.setAttribute('draggable','false');
+    slot.appendChild(img); container.appendChild(slot);
   }
 }
 
-/* === FX helpers === */
-function spawnManaFx(fromEl, toEl, elType){
-  if(!fromEl || !toEl) return;
-  const orb = document.createElement('img');
-  orb.className = 'fx-orb';
-  orb.src = iconUrl[elType] || '';
-  orb.alt = elType;
-
-  const a = fromEl.getBoundingClientRect();
-  const b = toEl.getBoundingClientRect();
-  const startX = a.left + a.width/2, startY = a.top + a.height/2;
-  const endX   = b.left + b.width/2, endY   = b.top + Math.min(32, b.height/2);
-
-  const ctrlX = (startX + endX)/2 + (Math.random()*80 - 40);
-  const ctrlY = Math.min(startY, endY) - 80;
-
-  orb.style.left = (startX - 12) + 'px';
-  orb.style.top  = (startY - 12) + 'px';
-  document.body.appendChild(orb);
-
-  const t0 = performance.now(), dur = 550;
-  function bezier(t){
-    const u = 1 - t;
-    const x = u*u*startX + 2*u*t*ctrlX + t*t*endX;
-    const y = u*u*startY + 2*u*t*ctrlY + t*t*endY;
-    return [x,y];
-  }
-  function step(now){
-    const t = Math.min(1, (now - t0) / dur);
-    const [x,y] = bezier(t);
-    orb.style.transform = `translate(${x - startX}px, ${y - startY}px) scale(${1 + .15*(1-t)})`;
-    orb.style.opacity = String(1 - t*0.05);
-    if(t < 1) requestAnimationFrame(step);
-    else {
-      orb.remove();
-      const card = toEl.closest('.pile-card');
-      if(card){ card.classList.add('hit'); setTimeout(()=>card.classList.remove('hit'), 350); }
-    }
-  }
+/* === FX === */
+function spawnManaFx(fromEl,toEl,elType){
+  if(!fromEl||!toEl) return;
+  const orb=document.createElement('img'); orb.className='fx-orb'; orb.src=iconUrl[elType]||''; orb.alt=elType;
+  const a=fromEl.getBoundingClientRect(), b=toEl.getBoundingClientRect();
+  const startX=a.left+a.width/2, startY=a.top+a.height/2; const endX=b.left+b.width/2, endY=b.top+Math.min(32,b.height/2);
+  const ctrlX=(startX+endX)/2+(Math.random()*80-40); const ctrlY=Math.min(startY,endY)-80;
+  orb.style.left=(startX-12)+'px'; orb.style.top=(startY-12)+'px'; document.body.appendChild(orb);
+  const t0=performance.now(), dur=550;
+  function bezier(t){ const u=1-t; const x=u*u*startX + 2*u*t*ctrlX + t*t*endX; const y=u*u*startY + 2*u*t*ctrlY + t*t*endY; return [x,y]; }
+  function step(now){ const t=Math.min(1,(now-t0)/dur); const [x,y]=bezier(t); orb.style.transform=`translate(${x-startX}px, ${y-startY}px) scale(${1+.15*(1-t)})`; orb.style.opacity=String(1 - t*0.05);
+    if(t<1) requestAnimationFrame(step); else { orb.remove(); const card=toEl.closest('.pile-card'); if(card){ card.classList.add('hit'); setTimeout(()=>card.classList.remove('hit'),350); } } }
   requestAnimationFrame(step);
 }
 function pileToReserveBurstFx(pileIdx){
-  const src = document.getElementById(pileIdx ? 'p1Orbs' : 'p0Orbs');
-  const dst = document.getElementById('meReserve');
-  if(!src || !dst) return;
-  const icons = [...src.querySelectorAll('img')].slice(-12);
-  icons.forEach((img, i)=>{
-    setTimeout(()=>{ spawnManaFx(img, dst, img.alt||'Arcane'); }, i*20);
-  });
+  const src=document.getElementById(pileIdx?'p1Orbs':'p0Orbs'); const dst=document.getElementById('meReserve'); if(!src||!dst) return;
+  const icons=[...src.querySelectorAll('img')].slice(-12);
+  icons.forEach((img,i)=>{ setTimeout(()=>{ spawnManaFx(img, dst, img.alt||'Arcane'); }, i*20); });
 }
 
 /* === Réserve === */
-function renderReserveBar(el, pool, isMe=false){
+function renderReserveBar(el,pool,isMe=false){
   el.innerHTML="";
   for(const e of ELEMENTS){
     const item=document.createElement('div'); item.className='res-item';
     const img=document.createElement('img'); img.src=iconUrl[e]; img.alt=e; img.title=e;
     const name=document.createElement('span'); name.textContent=e;
     const cnt=document.createElement('b'); cnt.textContent=pool[e]||0;
-    item.append(img, name, cnt);
-
-    if(isMe){
-      item.title = "Cliquer pour libérer 1 mana de type « "+e+" » dans les piles";
-      item.addEventListener('click', ()=> releaseFromReserve(e, item));
-    }else{
-      item.style.cursor = "default";
-      item.title = "Réserve adverse (non cliquable)";
-    }
+    item.append(img,name,cnt);
+    if(isMe){ item.title="Cliquer pour libérer 1 mana « "+e+" »"; item.addEventListener('click',()=>releaseFromReserve(e,item)); }
+    else{ item.style.cursor="default"; item.title="Réserve adverse"; }
     el.appendChild(item);
   }
 }
-
-/* === Choix de pile alterné pour libération === */
 function chooseReleaseTarget(){
-  if(G._relFlip==null){
-    G._relFlip = (G.ether[0].length <= G.ether[1].length) ? 0 : 1;
-  }
-  const target = G._relFlip;
-  G._relFlip = 1 - G._relFlip;
-  return target;
+  if(G._relFlip==null){ G._relFlip=(G.ether[0].length<=G.ether[1].length)?0:1; }
+  const target=G._relFlip; G._relFlip=1-G._relFlip; return target;
 }
-
-/* Libérer 1 mana depuis la réserve → piles */
-function releaseFromReserve(el, fromNode){
-  const me = G.players[G.current];
-  if(!me || (me.reserve[el]||0) <= 0) return;
-
-  const target = chooseReleaseTarget();
-  const destOrbs = document.getElementById(target ? 'p1Orbs' : 'p0Orbs');
-
+function releaseFromReserve(el,fromNode){
+  const me=G.players["0"]; if(!me || (me.reserve[el]||0)<=0) return;
+  const target=chooseReleaseTarget(); const destOrbs=document.getElementById(target?'p1Orbs':'p0Orbs');
   if(fromNode && destOrbs) spawnManaFx(fromNode, destOrbs, el);
-
-  me.reserve[el]--;
-  G.ether[target].push(el);
-  writeLog(`Libère 1 ${el} → Pile ${target+1}`);
-  render(); netSync();
+  me.reserve[el]--; G.ether[target].push(el);
+  writeLog(`Libère 1 ${el} → Pile ${target+1}`); render(); netSync();
 }
 
 function renderDeckDiscard(){
-  const me=G.players[G.current], opp=G.players[other(G.current)];
-  document.getElementById("meDeckCnt").textContent = me.deck.length;
-  const meDiscardSlot = document.getElementById("meDiscardSlot"); meDiscardSlot.innerHTML = '<span class="label">Défausse</span>';
+  const me=G.players["0"], opp=G.players["1"];
+  document.getElementById("meDeckCnt").textContent=me.deck.length;
+  const meDiscard=document.getElementById("meDiscardSlot"); meDiscard.innerHTML='<span class="label">Défausse</span>';
   if(me.discard.length>0){
     const topId=me.discard[me.discard.length-1]; const def=CARD_INDEX[topId]||{id:topId};
     const img=document.createElement('img'); img.className='top'; img.src=cardImagePath(def); img.alt=def.name||topId; img.loading="lazy"; img.decoding="async";
-    img.setAttribute('draggable','true');
-    img.addEventListener('dragstart', (ev)=>cardDragStart(ev, topId));
-    meDiscardSlot.appendChild(img);
+    img.setAttribute('draggable','true'); img.addEventListener('dragstart',(ev)=>cardDragStart(ev, topId)); meDiscard.appendChild(img);
   }
-  const oppDeckLen = Array.isArray(opp.deck)? opp.deck.length : (opp.deck||[]).length;
-  document.getElementById("oppDeckCnt").textContent = oppDeckLen;
-  const oppDiscardSlot = document.getElementById("oppDiscardSlot"); oppDiscardSlot.innerHTML = '<span class="label">Défausse</span>';
+  const oppDeckLen=Array.isArray(opp.deck)? opp.deck.length : (opp.deck||[]).length;
+  document.getElementById("oppDeckCnt").textContent=oppDeckLen;
+  const oppDiscard=document.getElementById("oppDiscardSlot"); oppDiscard.innerHTML='<span class="label">Défausse</span>';
   if(opp.discard.length>0){
-    const top = opp.discard[opp.discard.length-1];
-    const def=CARD_INDEX[top.id]||{id:top.id};
+    const top=opp.discard[opp.discard.length-1]; const def=CARD_INDEX[top.id]||{id:top.id};
     const img=document.createElement('img'); img.className='top'; img.src=cardImagePath(def); img.alt=def.name||top.id; img.loading="lazy"; img.decoding="async";
-    oppDiscardSlot.appendChild(img);
+    oppDiscard.appendChild(img);
   }
 }
 
 /* =================== Phases =================== */
-const phaseOrder = ["draw","recover","action","end"];
+const phaseOrder=["draw","recover","action","end"];
 function setPhase(p){ G.phase=p; renderPhase(); netSync(); }
-function nextPhase(){
-  const idx = phaseOrder.indexOf(G.phase);
-  const nxt = phaseOrder[(idx+1)%phaseOrder.length];
-  setPhase(nxt);
-}
-document.getElementById('phaseNext').onclick = ()=> nextPhase();
-function renderPhase(){
-  document.querySelectorAll('.phase-chip').forEach(b=>{
-    const p=b.getAttribute('data-phase');
-    b.classList.toggle('active', p===G.phase);
-    b.onclick = () => setPhase(p);   // ✅ fix: handler correct
-  });
-}
+function nextPhase(){ const idx=phaseOrder.indexOf(G.phase); const nxt=phaseOrder[(idx+1)%phaseOrder.length]; setPhase(nxt); }
+document.getElementById('phaseNext').onclick=()=> nextPhase();
+function renderPhase(){ document.querySelectorAll('.phase-chip').forEach(b=>{ const p=b.getAttribute('data-phase'); b.classList.toggle('active', p===G.phase); b.onclick=()=> setPhase(p); }); }
 function startTurn(){
   const skip=(G.turn===1 && G.current==="0");
   setPhase('draw');
   if(!skip){ if(!draw(G.current,1)){ alert("Deck vide"); writeLog("Pioche impossible (deck vide)."); } else { writeLog("Pioche 1 carte."); } }
-  setPhase('recover');  // on passe en récup; le picker gère les 3 manas → choosePile
+  setPhase('recover');
   G.picker.desired=3; G.picker.counts=emptyRes(); renderPicker(); netSync();
 }
 function draw(pid,n){
@@ -1091,408 +767,238 @@ function draw(pid,n){
 }
 document.getElementById("endBtn").onclick=()=>{
   setPhase('end');
-  const me=G.players[G.current];
-  while(me.hand.length>7){ const cid=me.hand.pop(); me.discard.push(cid); }
-  writeLog(`Fin du tour. Main ajustée à ${me.hand.length} carte(s).`);
-  G.current=other(G.current); G.turn+=1;
-  G._relFlip=null;
+  // Ajuste la main du joueur dont c'est le tour (logique locale)
+  const p=G.players[G.current];
+  while(p.hand.length>7){ const cid=p.hand.pop(); p.discard.push(cid); }
+  writeLog(`Fin du tour. Main du joueur courant ajustée à ${p.hand.length} carte(s).`);
+  G.current=other(G.current); G.turn+=1; G._relFlip=null;
   startTurn(); render(); netSync();
 };
 
 /* =================== Import Deck (plateau) =================== */
 document.getElementById('deckFile').addEventListener('change', async (ev)=>{
-  const file = ev.target.files?.[0]; if(!file) return;
+  const file=ev.target.files?.[0]; if(!file) return;
   try{
     await loadLocalCardsIndex();
-    const txt = await file.text();
-    const {paths, unknown} = parseDeckText(txt);
-    if(!paths.length){
-      alert("Aucune carte valide trouvée.\nChaque ligne doit contenir un nom de fichier présent dans /cartes/<Élément>/ (ex: imgi_71_Lame-d’air.png).");
-      return;
-    }
+    const txt=await file.text();
+    const {paths, unknown}=parseDeckText(txt);
+    if(!paths.length){ alert("Aucune carte valide trouvée.\nChaque ligne doit contenir un nom de fichier présent dans /cartes/<Élément>/ (ex: imgi_71_Lame-d’air.png)."); return; }
     if(unknown.length){ console.warn("Lignes ignorées:", unknown); }
     importPlayerDeck(paths);
-  }catch(e){
-    alert("Impossible de charger votre deck : " + e.message);
-  }finally{
-    ev.target.value = "";
-  }
+  }catch(e){ alert("Impossible de charger votre deck : "+e.message); }
+  finally{ ev.target.value=""; }
 });
 function parseDeckText(txt){
-  const lines = String(txt).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const lines=String(txt).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
   const paths=[], unknown=[];
   for(const line of lines){
     if(line.startsWith('#')) continue;
-    const raw = line.replace(/^"+|"+$/g,'').replace(/^'+|'+$/g,'');
-    const base = fileBase(raw).toLowerCase();
-    let p = LOCAL_CARDS.byBase.get(base);
-    if(!p && raw.toLowerCase().startsWith('cartes/')) p = raw;
+    const raw=line.replace(/^"+|"+$/g,'').replace(/^'+|'+$/g,'');
+    const base=fileBase(raw).toLowerCase();
+    let p=LOCAL_CARDS.byBase.get(base);
+    if(!p && raw.toLowerCase().startsWith('cartes/')) p=raw;
     if(p){ paths.push(String(p).replace(/\\/g,'/')); } else { unknown.push(line); }
   }
   return {paths, unknown};
 }
 function importPlayerDeck(paths){
-  // Index des cartes
-  paths.forEach(p=>{
-    if(!CARD_INDEX[p]) CARD_INDEX[p] = { id:p, name:prettyNameFromFilename(fileBase(p)), image:p, element:getElementFromPath(p) };
-  });
-  // Init joueurs
+  paths.forEach(p=>{ if(!CARD_INDEX[p]) CARD_INDEX[p]={ id:p, name:prettyNameFromFilename(fileBase(p)), image:p, element:getElementFromPath(p) }; });
   G.players["0"]=makePlayer(paths);
   if(!G.players["1"]) G.players["1"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
   G.current="0"; G.turn=1; G._flip=null; G._relFlip=null; G.step="setup"; G.phase="setup";
-
-  // Rendu sécurisé
   try{
-    render();
-    netSync();
+    render(); netSync();
     startStartingHand("0");
     writeLog("Deck importé. Main initiale distribuée.");
-  }catch(e){
-    console.error("Erreur lors du rendu après import deck:", e);
-    alert("Deck chargé mais affichage impossible : " + e.message);
-  }
+  }catch(e){ console.error("Erreur rendu après import deck:", e); alert("Deck chargé mais affichage impossible : "+e.message); }
 }
 
 /* =================== Main de départ 2x5 =================== */
 function startStartingHand(pid){
-  const p = G.players[pid];
+  const p=G.players[pid];
   if(!p || (p.hand && p.hand.length)) return;
-  if(p.deck.length < 10){ alert("Deck trop court pour la main initiale."); return; }
-  const drawn = p.deck.splice(0, 10);
-  const pileA = drawn.slice(0,5);
-  const pileB = drawn.slice(5,10);
-  G.startChoice = { active:true, pid, pileA, pileB };
-  p.hand = pileA.slice();
-  p.deck.push(...pileB); p.deck = shuffle(p.deck);
-  G.startChoice = { active:false, pid:null, pileA:[], pileB:[] };
-  render(); netSync(); if(pid === G.current){ G.turn = 1; startTurn(); }
+  if(p.deck.length<10){ alert("Deck trop court pour la main initiale."); return; }
+  const drawn=p.deck.splice(0,10); const pileA=drawn.slice(0,5); const pileB=drawn.slice(5,10);
+  G.startChoice={active:true, pid, pileA, pileB};
+  p.hand=pileA.slice(); p.deck.push(...pileB); p.deck=shuffle(p.deck);
+  G.startChoice={active:false, pid:null, pileA:[], pileB:[]};
+  render(); netSync(); if(pid===G.current){ G.turn=1; startTurn(); }
 }
 
-/* =================== Zoom popup =================== */
-const zoomPopup = document.getElementById('zoomPopup');
-const zoomImg   = zoomPopup.querySelector('img');
-function positionZoom(e){
-  const pad = 16;
-  const w = zoomPopup.offsetWidth || 360;
-  const h = zoomPopup.offsetHeight || 504;
-  let x = e.clientX + 20, y = e.clientY + 20;
-  if (x + w + pad > window.innerWidth)  x = window.innerWidth  - w - pad;
-  if (y + h + pad > window.innerHeight) y = window.innerHeight - h - pad;
-  zoomPopup.style.left = x + 'px'; zoomPopup.style.top  = y + 'px';
+/* =================== Zoom =================== */
+const zoomPopup=document.getElementById('zoomPopup'); const zoomImg=zoomPopup.querySelector('img');
+function positionZoom(e){ const pad=16, w=zoomPopup.offsetWidth||360, h=zoomPopup.offsetHeight||504; let x=e.clientX+20, y=e.clientY+20;
+  if(x+w+pad>window.innerWidth) x=window.innerWidth-w-pad; if(y+h+pad>window.innerHeight) y=window.innerHeight-h-pad;
+  zoomPopup.style.left=x+'px'; zoomPopup.style.top=y+'px';
 }
 function attachHoverZoom(root=document){
-  const cards = [...root.querySelectorAll('.card-zoomable')];
+  const cards=[...root.querySelectorAll('.card-zoomable')];
   cards.forEach(card=>{
     card.addEventListener('mouseenter', onEnterCard, {once:false});
-    card.addEventListener('mousemove',  onMoveCard,  {once:false});
+    card.addEventListener('mousemove', onMoveCard, {once:false});
     card.addEventListener('mouseleave', onLeaveCard, {once:false});
   });
 }
-function onEnterCard(e){
-  const img = e.currentTarget.querySelector('img'); if(!img) return;
-  zoomImg.src = img.src; zoomPopup.style.display = 'block'; positionZoom(e);
-}
+function onEnterCard(e){ const img=e.currentTarget.querySelector('img'); if(!img) return; zoomImg.src=img.src; zoomPopup.style.display='block'; positionZoom(e); }
 function onMoveCard(e){ positionZoom(e); }
-function onLeaveCard(){ zoomPopup.style.display = 'none'; zoomImg.src = ''; }
+function onLeaveCard(){ zoomPopup.style.display='none'; zoomImg.src=''; }
 attachHoverZoom();
 
 /* =================== RENDER =================== */
 function render(){
-  // joueurs
-  const me  = G.players[G.current];
-  const opp = G.players[other(G.current)];
-
-  // Éther (piles 1 & 2)
+  const me=G.players["0"]; const opp=G.players["1"];
   renderEther();
-
-  // Réserves
-  renderReserveBar(document.getElementById('meReserve'),  me.reserve,  true);
+  renderReserveBar(document.getElementById('meReserve'), me.reserve, true);
   renderReserveBar(document.getElementById('oppReserve'), opp.reserve, false);
-
-  // Mains
   renderHand(document.getElementById('meHand'), me.hand);
-  renderOpponentHand(document.getElementById('oppHand'), Array.isArray(opp.hand) ? opp.hand.length : (opp.hand||[]).length);
-
-  // Préparés / Canalisés / Plateau
-  renderPrepared(document.getElementById('mePrepared'),  me.prepared);
+  renderOpponentHand(document.getElementById('oppHand'), Array.isArray(opp.hand)? opp.hand.length : (opp.hand||[]).length);
+  renderPrepared(document.getElementById('mePrepared'), me.prepared);
   renderPrepared(document.getElementById('meChanneled'), me.channeled);
-  renderPile    (document.getElementById('oppPrepared'),  opp.prepared,   false);
-  renderPile    (document.getElementById('oppChanneled'), opp.channeled,  false);
-  renderPile    (document.getElementById('oppBoard'),     opp.board,      false);
-
-  // Decks / Défausses
+  renderPile(document.getElementById('oppPrepared'), opp.prepared, false);
+  renderPile(document.getElementById('oppChanneled'), opp.channeled, false);
+  renderPile(document.getElementById('oppBoard'), opp.board, false);
   renderDeckDiscard();
-
-  // PV + Mage Noir (badges)
-  document.getElementById('meLife').textContent  = me.life;
-  document.getElementById('oppLife').textContent = opp.life;
-  document.getElementById('meMageToggle').classList.toggle('mn-active',  !!me.isMageNoir);
+  document.getElementById('meLife').textContent=me.life;
+  document.getElementById('oppLife').textContent=opp.life;
+  document.getElementById('meMageToggle').classList.toggle('mn-active', !!me.isMageNoir);
   document.getElementById('oppMageToggle').classList.toggle('mn-active', !!opp.isMageNoir);
-
-  // Journal
   renderLog();
-
-  // Re-attacher le zoom sur les nouveaux éléments
   attachHoverZoom(document);
 }
 
 /* =================== UI Réseau : Créer/Rejoindre =================== */
-function randomCode(){
-  const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let out=''; for(let i=0;i<6;i++) out += alphabet[Math.floor(Math.random()*alphabet.length)];
-  return out;
-}
+function randomCode(){ const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let out=''; for(let i=0;i<6;i++) out+=alphabet[Math.floor(Math.random()*alphabet.length)]; return out; }
 document.getElementById('createBtn').addEventListener('click', ()=>{
-  const id = randomCode();
-  document.getElementById('roomId').value = id;
-  history.replaceState(null, '', '#'+id);
-  net.connect(id);
-  showShareLink(id);
+  const id=randomCode(); document.getElementById('roomId').value=id; history.replaceState(null,'','#'+id); net.connect(id); showShareLink(id);
 });
 document.getElementById('joinBtn').addEventListener('click', ()=>{
-  let id = document.getElementById('roomId').value.trim();
-  if(!id){ alert("Entre un code de salle (ex: ABC123) ou clique sur « Créer une partie »."); return; }
-  history.replaceState(null, '', '#'+id);
-  net.connect(id);
-  showShareLink(id);
+  const id=(document.getElementById('roomId').value||'').trim(); if(!id){ alert("Entre un code de salle (ex: ABC123) ou clique sur « Créer une partie »."); return; }
+  history.replaceState(null,'','#'+id); net.connect(id); showShareLink(id);
 });
-document.getElementById('restartBtn').addEventListener('click', ()=>{
-  location.reload();
-});
+document.getElementById('restartBtn').addEventListener('click', ()=>{ location.reload(); });
 window.addEventListener('load', ()=>{
-  const hash = (location.hash||'').replace('#','').trim();
-  if(hash){
-    document.getElementById('roomId').value = hash;
-    net.connect(hash);
-    showShareLink(hash);
-  }
+  const hash=(location.hash||'').replace('#','').trim();
+  if(hash){ document.getElementById('roomId').value=hash; net.connect(hash); showShareLink(hash); }
 });
 
 /* =================== Deckbuilder =================== */
-const dbModal = document.getElementById('deckbuilderModal');
-const dbGrid = document.getElementById('dbGrid');
-const deckListEl = document.getElementById('deckList');
-const deckCountEl = document.getElementById('deckCount');
-const eltChips = document.getElementById('eltChips');
-
-let DB = { filter:"Tous", items: new Map() };
-
-document.getElementById('deckbuilderBtn').onclick = async ()=>{
-  await loadLocalCardsIndex();
-  buildElementChips();
-  renderDbGrid(); renderDeckList();
-  dbModal.style.display = 'flex';
-  attachHoverZoom(dbModal);
-};
-document.getElementById('dbClose').onclick = ()=> dbModal.style.display = 'none';
-document.getElementById('dbClear').onclick = ()=>{ DB.items.clear(); renderDeckList(); };
-document.getElementById('dbExport').onclick = ()=> exportDeckTxt();
+const dbModal=document.getElementById('deckbuilderModal');
+const dbGrid=document.getElementById('dbGrid'); const deckListEl=document.getElementById('deckList'); const deckCountEl=document.getElementById('deckCount'); const eltChips=document.getElementById('eltChips');
+let DB={ filter:"Tous", items:new Map() };
+document.getElementById('deckbuilderBtn').onclick=async ()=>{ await loadLocalCardsIndex(); buildElementChips(); renderDbGrid(); renderDeckList(); dbModal.style.display='flex'; attachHoverZoom(dbModal); };
+document.getElementById('dbClose').onclick=()=> dbModal.style.display='none';
+document.getElementById('dbClear').onclick=()=>{ DB.items.clear(); renderDeckList(); };
+document.getElementById('dbExport').onclick=()=> exportDeckTxt();
 document.getElementById('dbImportFile').addEventListener('change', async (ev)=>{
-  const f = ev.target.files?.[0]; if(!f) return;
-  try{
-    await loadLocalCardsIndex();
-    const txt = await f.text();
-    const {paths} = parseDeckText(txt);
-    DB.items.clear();
-    for(const p of paths){ DB.items.set(p, (DB.items.get(p)||0)+1); }
-    renderDeckList();
-  }finally{ ev.target.value=""; }
+  const f=ev.target.files?.[0]; if(!f) return;
+  try{ await loadLocalCardsIndex(); const txt=await f.text(); const {paths}=parseDeckText(txt); DB.items.clear(); for(const p of paths){ DB.items.set(p,(DB.items.get(p)||0)+1); } renderDeckList(); }
+  finally{ ev.target.value=""; }
 });
-
 function buildElementChips(){
   eltChips.innerHTML="";
-  const els = Array.from(LOCAL_CARDS.byElem.keys()).filter(x=>"Inconnu"!==x);
-  const order = ELEMENTS.filter(e=>els.includes(e));
-  const chips = ["Tous", ...order, ...els.filter(e=>!order.includes(e))];
-
+  const els=Array.from(LOCAL_CARDS.byElem.keys()).filter(x=>"Inconnu"!==x);
+  const order=ELEMENTS.filter(e=>els.includes(e));
+  const chips=["Tous", ...order, ...els.filter(e=>!order.includes(e))];
   for(const e of chips){
-    const b=document.createElement('button');
-    b.className='chip'+(DB.filter===e?' active':'');
-    if(e!=="Tous"){
-      const img=document.createElement('img');
-      img.src=iconUrl[e]; img.alt=e;
-      b.appendChild(img);
-    }
+    const b=document.createElement('button'); b.className='chip'+(DB.filter===e?' active':'');
+    if(e!=="Tous"){ const img=document.createElement('img'); img.src=iconUrl[e]; img.alt=e; b.appendChild(img); }
     b.appendChild(document.createTextNode(e));
-    b.onclick=()=>{ 
-      DB.filter=e; 
-      [...eltChips.children].forEach(x=>x.classList.remove('active')); 
-      b.classList.add('active'); 
-      renderDbGrid(); 
-    };
+    b.onclick=()=>{ DB.filter=e; [...eltChips.children].forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderDbGrid(); };
     eltChips.appendChild(b);
   }
 }
-
 function renderDbGrid(){
   dbGrid.innerHTML="";
-  let list = LOCAL_CARDS.list;
-  if(DB.filter && DB.filter!=="Tous"){
-    const arr = LOCAL_CARDS.byElem.get(DB.filter) || [];
-    list = arr;
-  }
+  let list=LOCAL_CARDS.list;
+  if(DB.filter && DB.filter!=="Tous"){ const arr=LOCAL_CARDS.byElem.get(DB.filter)||[]; list=arr; }
   for(const p of list){
-    const base = fileBase(p);
-    const display = prettyNameFromFilename(base);
-    const card = document.createElement('div');
-    card.className='thumb card-zoomable';
-    const img = document.createElement('img'); img.src=p; img.alt=display; img.loading='lazy';
-    const title = document.createElement('div'); title.className='cardname'; title.textContent=display;
-
-    const overlay = document.createElement('div'); overlay.className='overlay';
-    const qtyWrap = document.createElement('div'); qtyWrap.className='qty';
-    const minus = document.createElement('button'); minus.textContent='–';
-    const input = document.createElement('input'); input.type='number'; input.min='1'; input.max='9'; input.value='1';
-    input.style.width='42px'; input.style.background='#0f1426'; input.style.border='1px solid #2e3656'; input.style.color='#dfe6ff'; input.style.borderRadius='8px'; input.style.padding='2px 6px';
-    const plus = document.createElement('button'); plus.textContent='+';
-    minus.onclick=()=>{ const v=Math.max(1, (parseInt(input.value)||1)-1); input.value=String(v); };
-    plus.onclick=()=>{ const v=Math.min(9, (parseInt(input.value)||1)+1); input.value=String(v); };
+    const base=fileBase(p); const display=prettyNameFromFilename(base);
+    const card=document.createElement('div'); card.className='thumb card-zoomable';
+    const img=document.createElement('img'); img.src=p; img.alt=display; img.loading='lazy';
+    const title=document.createElement('div'); title.className='cardname'; title.textContent=display;
+    const overlay=document.createElement('div'); overlay.className='overlay';
+    const qtyWrap=document.createElement('div'); qtyWrap.className='qty';
+    const minus=document.createElement('button'); minus.textContent='–';
+    const input=document.createElement('input'); input.type='number'; input.min='1'; input.max='9'; input.value='1'; input.style.width='42px'; input.style.background='#0f1426'; input.style.border='1px solid #2e3656'; input.style.color='#dfe6ff'; input.style.borderRadius='8px'; input.style.padding='2px 6px';
+    const plus=document.createElement('button'); plus.textContent='+';
+    minus.onclick=()=>{ const v=Math.max(1,(parseInt(input.value)||1)-1); input.value=String(v); };
+    plus.onclick=()=>{ const v=Math.min(9,(parseInt(input.value)||1)+1); input.value=String(v); };
     qtyWrap.append(minus,input,plus);
-
-    const add = document.createElement('button'); add.className='btn small add-btn'; add.textContent='Ajouter';
-    add.onclick=()=>{ const n=Math.max(1, Math.min(9, parseInt(input.value)||1)); DB.items.set(p, (DB.items.get(p)||0)+n); renderDeckList(); };
-
-    overlay.append(qtyWrap, add);
-    card.append(img, title, overlay);
-    dbGrid.appendChild(card);
+    const add=document.createElement('button'); add.className='btn small add-btn'; add.textContent='Ajouter';
+    add.onclick=()=>{ const n=Math.max(1, Math.min(9, parseInt(input.value)||1)); DB.items.set(p,(DB.items.get(p)||0)+n); renderDeckList(); };
+    overlay.append(qtyWrap,add);
+    card.append(img,title,overlay); dbGrid.appendChild(card);
   }
   attachHoverZoom(dbGrid);
 }
-
 function renderDeckList(){
-  deckListEl.innerHTML="";
-  let total=0;
-  for(const [path, qty] of DB.items.entries()){
-    total += qty;
-    const row = document.createElement('div'); row.className='deck-row';
-    const name = document.createElement('div'); name.className='name'; name.textContent = `${prettyNameFromFilename(fileBase(path))}`;
-    const badge = document.createElement('div'); badge.className='pill'; badge.textContent = '×'+qty;
+  deckListEl.innerHTML=""; let total=0;
+  for(const [path,qty] of DB.items.entries()){
+    total+=qty;
+    const row=document.createElement('div'); row.className='deck-row';
+    const name=document.createElement('div'); name.className='name'; name.textContent=`${prettyNameFromFilename(fileBase(path))}`;
+    const badge=document.createElement('div'); badge.className='pill'; badge.textContent='×'+qty;
     const minus=document.createElement('button'); minus.className='btn small ghost'; minus.textContent='-';
     const plus=document.createElement('button'); plus.className='btn small ghost'; plus.textContent='+';
     const del=document.createElement('button'); del.className='btn small alt'; del.textContent='Retirer';
-
     minus.onclick=()=>{ const v=(DB.items.get(path)||0)-1; if(v<=0){ DB.items.delete(path);} else { DB.items.set(path,v);} renderDeckList(); };
     plus.onclick=()=>{ const v=(DB.items.get(path)||0)+1; DB.items.set(path,v); renderDeckList(); };
-    del.onclick =()=>{ DB.items.delete(path); renderDeckList(); };
-
-    row.append(name, badge, minus, plus, del);
-    deckListEl.appendChild(row);
+    del.onclick=()=>{ DB.items.delete(path); renderDeckList(); };
+    row.append(name,badge,minus,plus,del); deckListEl.appendChild(row);
   }
-  deckCountEl.textContent = total;
+  deckCountEl.textContent=total;
 }
-
 function exportDeckTxt(){
-  const lines=[];
-  for(const [path, qty] of DB.items.entries()){
-    const base = fileBase(path);
-    for(let i=0;i<qty;i++) lines.push(base);
-  }
-  const blob = new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='deck.txt'; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  const lines=[]; for(const [path,qty] of DB.items.entries()){ const base=fileBase(path); for(let i=0;i<qty;i++) lines.push(base); }
+  const blob=new Blob([lines.join('\n')], {type:'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='deck.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 /* =================== ÉCHANGE MANA (2:1) =================== */
-const exModal = document.getElementById('exModal');
-const exClose = document.getElementById('exClose');
-const exPileChips = document.getElementById('exPileChips');
-const exPileElems = document.getElementById('exPileElems');
-const exPayRows = document.getElementById('exPayRows');
-const exPayInfo = document.getElementById('exPayInfo');
-const exReset = document.getElementById('exReset');
-const exConfirm = document.getElementById('exConfirm');
-
-let EX = { pile:0, takeEl:null, pay:{Air:0,Feu:0,Eau:0,'Végétal':0,'Minéral':0,Arcane:0} };
-
+const exModal=document.getElementById('exModal'); const exClose=document.getElementById('exClose');
+const exPileChips=document.getElementById('exPileChips'); const exPileElems=document.getElementById('exPileElems');
+const exPayRows=document.getElementById('exPayRows'); const exPayInfo=document.getElementById('exPayInfo');
+const exReset=document.getElementById('exReset'); const exConfirm=document.getElementById('exConfirm');
+let EX={ pile:0, takeEl:null, pay:{Air:0,Feu:0,Eau:0,'Végétal':0,'Minéral':0,Arcane:0} };
 document.getElementById('exchangeBtn').addEventListener('click', ()=>openExchange());
-
-exClose.onclick = ()=> exModal.style.display='none';
-exReset.onclick = ()=>{ resetExchange(); renderExchangeUI(); };
-
-exConfirm.onclick = ()=>{
-  const me = G.players[G.current];
-  const totalPay = Object.values(EX.pay).reduce((a,b)=>a+b,0);
+exClose.onclick=()=> exModal.style.display='none';
+exReset.onclick=()=>{ resetExchange(); renderExchangeUI(); };
+exConfirm.onclick=()=>{
+  const me=G.players["0"];
+  const totalPay=Object.values(EX.pay).reduce((a,b)=>a+b,0);
   if(totalPay!==2){ alert("Tu dois payer exactement 2 manas."); return; }
   if(EX.takeEl==null){ alert("Choisis le mana à récupérer depuis la pile."); return; }
-
-  for(const el of ELEMENTS){
-    if(EX.pay[el] > (me.reserve[el]||0)) { alert("Réserve insuffisante pour "+el); return; }
-  }
-  const pile = G.ether[EX.pile];
+  for(const el of ELEMENTS){ if(EX.pay[el]>(me.reserve[el]||0)){ alert("Réserve insuffisante pour "+el); return; } }
+  const pile=G.ether[EX.pile];
   if((pile||[]).filter(e=>e===EX.takeEl).length===0){ alert("La pile choisie ne contient pas ce mana."); return; }
-
-  for(const el of ELEMENTS){
-    for(let i=0;i<EX.pay[el]; i++){
-      me.reserve[el]--; G.ether[EX.pile].push(el);
-    }
-  }
-  const idx = G.ether[EX.pile].indexOf(EX.takeEl);
+  for(const el of ELEMENTS){ for(let i=0;i<EX.pay[el]; i++){ me.reserve[el]--; G.ether[EX.pile].push(el); } }
+  const idx=G.ether[EX.pile].indexOf(EX.takeEl);
   if(idx>-1){ G.ether[EX.pile].splice(idx,1); me.reserve[EX.takeEl]=(me.reserve[EX.takeEl]||0)+1; }
-
   writeLog(`Échange 2→1 sur Pile ${EX.pile+1}: +1 ${EX.takeEl} en réserve.`);
-  exModal.style.display='none';
-  render(); netSync();
+  exModal.style.display='none'; render(); netSync();
 };
-
-function resetExchange(){
-  EX.pile = (G.ether[0].length>=G.ether[1].length)?0:1;
-  EX.takeEl = null;
-  EX.pay = {Air:0,Feu:0,Eau:0,'Végétal':0,'Minéral':0,Arcane:0};
-}
-function openExchange(){
-  resetExchange();
-  renderExchangeUI();
-  exModal.style.display='flex';
-}
-
+function resetExchange(){ EX.pile=(G.ether[0].length>=G.ether[1].length)?0:1; EX.takeEl=null; EX.pay={Air:0,Feu:0,Eau:0,'Végétal':0,'Minéral':0,Arcane:0}; }
+function openExchange(){ resetExchange(); renderExchangeUI(); exModal.style.display='flex'; }
 function renderExchangeUI(){
-  exPileChips.innerHTML="";
-  [0,1].forEach(i=>{
-    const btn=document.createElement('button');
-    btn.className='ex-chip'+(EX.pile===i?' active':'');
-    btn.innerHTML = `<img src="${iconUrl.Arcane}" alt=""> Pile ${i+1} <span class="pill" style="margin-left:6px">×${G.ether[i].length}</span>`;
-    btn.onclick=()=>{ EX.pile=i; EX.takeEl=null; renderExchangeUI(); };
-    exPileChips.appendChild(btn);
-  });
-
-  exPileElems.innerHTML="";
-  const counts = countElems(G.ether[EX.pile]);
-  for(const el of ELEMENTS){
-    const n = counts[el]||0; if(!n) continue;
-    const c=document.createElement('button');
-    c.className='ex-chip'+(EX.takeEl===el?' active':'');
-    c.innerHTML=`<img src="${iconUrl[el]}" alt="${el}">${el} <span class="pill" style="margin-left:6px">×${n}</span>`;
-    c.onclick=()=>{ EX.takeEl=el; renderExchangeUI(); };
-    exPileElems.appendChild(c);
-  }
-  if(!exPileElems.children.length){
-    const span=document.createElement('span'); span.className='muted'; span.textContent="Pile vide.";
-    exPileElems.appendChild(span);
-  }
-
-  exPayRows.innerHTML="";
-  let paid=0;
-  const me = G.players[G.current];
+  exPileChips.innerHTML=""; [0,1].forEach(i=>{ const btn=document.createElement('button'); btn.className='ex-chip'+(EX.pile===i?' active':''); btn.innerHTML=`<img src="${iconUrl.Arcane}" alt=""> Pile ${i+1} <span class="pill" style="margin-left:6px">×${G.ether[i].length}</span>`;
+    btn.onclick=()=>{ EX.pile=i; EX.takeEl=null; renderExchangeUI(); }; exPileChips.appendChild(btn); });
+  exPileElems.innerHTML=""; const counts=countElems(G.ether[EX.pile]);
+  for(const el of ELEMENTS){ const n=counts[el]||0; if(!n) continue; const c=document.createElement('button'); c.className='ex-chip'+(EX.takeEl===el?' active':'');
+    c.innerHTML=`<img src="${iconUrl[el]}" alt="${el}">${el} <span class="pill" style="margin-left:6px">×${n}</span>`; c.onclick=()=>{ EX.takeEl=el; renderExchangeUI(); }; exPileElems.appendChild(c); }
+  if(!exPileElems.children.length){ const span=document.createElement('span'); span.className='muted'; span.textContent="Pile vide."; exPileElems.appendChild(span); }
+  exPayRows.innerHTML=""; let paid=0; const me=G.players["0"];
   for(const el of ELEMENTS){
     const row=document.createElement('div'); row.className='ex-qty'; row.style.marginBottom='6px';
     const label=document.createElement('div'); label.innerHTML=`<img src="${iconUrl[el]}" style="width:18px;height:18px;vertical-align:-4px"> ${el}`;
     const minus=document.createElement('button'); minus.className='btn small ghost'; minus.textContent='–';
     const val=document.createElement('div'); val.style.minWidth='20px'; val.style.textAlign='center'; val.textContent=EX.pay[el];
     const plus=document.createElement('button'); plus.className='btn small ghost'; plus.textContent='+';
-
     minus.onclick=()=>{ if(EX.pay[el]>0){ EX.pay[el]--; renderExchangeUI(); } };
-    plus.onclick=()=>{ 
-      const total = Object.values(EX.pay).reduce((a,b)=>a+b,0);
-      if(total>=2) return;
-      if(EX.pay[el] < (me.reserve[el]||0)) { EX.pay[el]++; renderExchangeUI(); }
-    };
-
-    row.append(label, minus, val, plus, (()=>{ const stock=document.createElement('span'); stock.className='muted'; stock.textContent=`dispo: ${me.reserve[el]||0}`; stock.style.marginLeft='6px'; return stock; })());
-    exPayRows.appendChild(row);
-    paid += EX.pay[el];
+    plus.onclick=()=>{ const total=Object.values(EX.pay).reduce((a,b)=>a+b,0); if(total>=2) return; if(EX.pay[el]<(me.reserve[el]||0)){ EX.pay[el]++; renderExchangeUI(); } };
+    row.append(label,minus,val,plus,(()=>{ const stock=document.createElement('span'); stock.className='muted'; stock.textContent=`dispo: ${me.reserve[el]||0}`; stock.style.marginLeft='6px'; return stock; })());
+    exPayRows.appendChild(row); paid+=EX.pay[el];
   }
-  exPayInfo.textContent = `Sélectionnés : ${paid} / 2`;
+  exPayInfo.textContent=`Sélectionnés : ${paid} / 2`;
 }
 
 /* =================== Boot =================== */
@@ -1502,8 +1008,7 @@ async function boot(reset=false){
   if(!G.players["0"]) G.players["0"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
   if(!G.players["1"]) G.players["1"]={ life:20, reserve:emptyRes(), hand:[], deck:[], discard:[], prepared:[], channeled:[], board:[], isMageNoir:false };
   G.current="0"; G.turn=1; G._flip=null; G._relFlip=null; G.step="setup"; G.phase="setup";
-  render();
-  renderPhase();
+  render(); renderPhase();
 }
 boot();
 </script>
